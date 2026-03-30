@@ -1,26 +1,46 @@
-from pydantic import BaseSettings
-from typing import Optional
-import os
+try:
+    from pydantic_settings import BaseSettings, SettingsConfigDict
 
+    class Settings(BaseSettings):
+        # Database
+        DB_HOST: str = "localhost"
+        DB_PORT: int = 3306
+        DB_USER: str = "root"
+        DB_PASSWORD: str = ""
+        DB_NAME: str = "smart_scan"
 
-class Settings(BaseSettings):
-    # Database
-    DB_HOST: str = "localhost"
-    DB_PORT: int = 3306
-    DB_USER: str = "root"
-    DB_PASSWORD: str = ""
-    DB_NAME: str = "smart_scan"
+        # CORS
+        ALLOWED_ORIGIN: str = "http://localhost:3000"
 
-    # CORS
-    ALLOWED_ORIGIN: str = "http://localhost:3000"
+        # Environment
+        ENV: str = "development"
+        LOG_LEVEL: str = "INFO"
 
-    # Environment
-    ENV: str = "development"
-    LOG_LEVEL: str = "INFO"
+        model_config = SettingsConfigDict(
+            env_file=".env",
+            case_sensitive=True,
+        )
+except ModuleNotFoundError:
+    from pydantic.v1 import BaseSettings
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    class Settings(BaseSettings):
+        # Database
+        DB_HOST: str = "localhost"
+        DB_PORT: int = 3306
+        DB_USER: str = "root"
+        DB_PASSWORD: str = ""
+        DB_NAME: str = "smart_scan"
+
+        # CORS
+        ALLOWED_ORIGIN: str = "http://localhost:3000"
+
+        # Environment
+        ENV: str = "development"
+        LOG_LEVEL: str = "INFO"
+
+        class Config:
+            env_file = ".env"
+            case_sensitive = True
 
 
 settings = Settings()
