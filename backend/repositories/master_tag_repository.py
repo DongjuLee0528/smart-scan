@@ -26,8 +26,7 @@ class MasterTagRepository:
         stmt = select(MasterTag.label_id).where(
             MasterTag.tag_uid == tag_uid
         )
-        result = self.db.execute(stmt).scalar_one_or_none()
-        return result
+        return self.db.execute(stmt).scalar_one_or_none()
 
     def get_all_by_device_id(self, device_id: int) -> List[MasterTag]:
         stmt = select(MasterTag).where(
