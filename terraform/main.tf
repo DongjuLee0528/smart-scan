@@ -506,7 +506,7 @@ resource "aws_iam_role_policy" "github_actions_lambda" {
       Resource = [
         aws_lambda_function.inbound.arn,
         aws_lambda_function.outbound.arn,
-        "arn:aws:lambda:ap-northeast-2:*:function:Chatbot-Skill-Server"
+        "arn:aws:lambda:ap-northeast-2:771004632699:function:smartscan-chatbot"
       ]
     }]
   })
