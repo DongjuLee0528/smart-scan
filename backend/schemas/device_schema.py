@@ -1,5 +1,13 @@
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, field_validator
+
+
+def _validate_required_text(value: str, field_name: str) -> str:
+    normalized_value = value.strip()
+    if not normalized_value:
+        raise ValueError(f"{field_name} is required")
+    return normalized_value
 
 
 class DeviceRegisterRequest(BaseModel):
@@ -9,21 +17,18 @@ class DeviceRegisterRequest(BaseModel):
     @field_validator("kakao_user_id")
     @classmethod
     def validate_kakao_user_id(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("kakao_user_id is required")
-        return v.strip()
+        return _validate_required_text(v, "kakao_user_id")
 
     @field_validator("serial_number")
     @classmethod
     def validate_serial_number(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("serial_number is required")
-        return v.strip()
+        return _validate_required_text(v, "serial_number")
 
 
 class DeviceResponse(BaseModel):
     id: int
     serial_number: str
+    family_id: int | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -45,6 +50,4 @@ class DeviceUnlinkRequest(BaseModel):
     @field_validator("kakao_user_id")
     @classmethod
     def validate_kakao_user_id(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("kakao_user_id is required")
-        return v.strip()
+        return _validate_required_text(v, "kakao_user_id")

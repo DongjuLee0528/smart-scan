@@ -9,12 +9,15 @@ from backend.services.device_service import DeviceService
 router = APIRouter(tags=["devices"])
 
 
+def get_device_service(db: Session = Depends(get_db)) -> DeviceService:
+    return DeviceService(db)
+
+
 @router.post("/register")
 async def register_device(
     request: DeviceRegisterRequest,
-    db: Session = Depends(get_db)
+    device_service: DeviceService = Depends(get_device_service)
 ):
-    device_service = DeviceService(db)
     user_device = device_service.register_device(request.kakao_user_id, request.serial_number)
     return success_response("Device registered successfully", user_device.model_dump())
 
@@ -22,9 +25,8 @@ async def register_device(
 @router.get("/me")
 async def get_my_device(
     kakao_user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    device_service: DeviceService = Depends(get_device_service)
 ):
-    device_service = DeviceService(db)
     user_device = device_service.get_my_device(kakao_user_id)
 
     if not user_device:
@@ -36,12 +38,10 @@ async def get_my_device(
 @router.delete("/me")
 async def unlink_device(
     request: DeviceUnlinkRequest,
-    db: Session = Depends(get_db)
+    device_service: DeviceService = Depends(get_device_service)
 ):
-    device_service = DeviceService(db)
     result = device_service.unlink_device(request.kakao_user_id)
 
     if result:
         return success_response("Device unlinked successfully")
-    else:
-        return success_response("No device to unlink")
+    return success_response("No device to unlink")
