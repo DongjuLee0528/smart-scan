@@ -27,12 +27,27 @@ _load_env_file()
 
 
 class Settings(BaseModel):
+    DATABASE_URL: str | None = os.getenv("DATABASE_URL")
+
     # Database
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
     DB_USER: str = os.getenv("DB_USER", "root")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
     DB_NAME: str = os.getenv("DB_NAME", "smart_scan")
+
+    # SMTP
+    SMTP_HOST: str | None = os.getenv("SMTP_HOST")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME: str | None = os.getenv("SMTP_USERNAME")
+    SMTP_PASSWORD: str | None = os.getenv("SMTP_PASSWORD")
+    SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    SMTP_USE_SSL: bool = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
+    SMTP_FROM_EMAIL: str | None = os.getenv("SMTP_FROM_EMAIL")
+    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "Smart Scan")
+    EMAIL_VERIFICATION_EXPIRE_MINUTES: int = int(
+        os.getenv("EMAIL_VERIFICATION_EXPIRE_MINUTES", "10")
+    )
 
     # CORS
     ALLOWED_ORIGIN: str = os.getenv("ALLOWED_ORIGIN", "http://localhost:3000")

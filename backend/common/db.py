@@ -4,7 +4,17 @@ from sqlalchemy.orm import sessionmaker
 from backend.common.config import settings
 
 
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}?charset=utf8mb4"
+def _build_database_url() -> str:
+    if settings.DATABASE_URL:
+        return settings.DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+    return (
+        f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}"
+        f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}?charset=utf8mb4"
+    )
+
+
+SQLALCHEMY_DATABASE_URL = _build_database_url()
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,

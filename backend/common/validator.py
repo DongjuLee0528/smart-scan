@@ -1,4 +1,5 @@
 import re
+
 from backend.common.exceptions import BadRequestException
 
 
@@ -38,3 +39,32 @@ def validate_positive_int(value: int, field_name: str) -> None:
 def validate_non_empty_string(value: str, field_name: str) -> None:
     if not value or not isinstance(value, str) or len(value.strip()) == 0:
         raise BadRequestException(f"{field_name} is required and cannot be empty")
+
+
+def validate_email(email: str) -> None:
+    if not email or not isinstance(email, str):
+        raise BadRequestException("email is required")
+
+    normalized_email = email.strip()
+    if not normalized_email:
+        raise BadRequestException("email cannot be empty")
+
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", normalized_email):
+        raise BadRequestException("email format is invalid")
+
+
+def validate_verification_code(code: str) -> None:
+    if not code or not isinstance(code, str):
+        raise BadRequestException("code is required")
+
+    normalized_code = code.strip()
+    if not re.match(r"^\d{6}$", normalized_code):
+        raise BadRequestException("code must be 6 digits")
+
+
+def validate_optional_age(age: int | None) -> None:
+    if age is None:
+        return
+
+    if not isinstance(age, int) or age <= 0 or age > 150:
+        raise BadRequestException("age must be an integer between 1 and 150")
