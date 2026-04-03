@@ -14,5 +14,7 @@ class Family(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # relationships
+    devices = relationship("Device", back_populates="family")
+    tags = relationship("Tag", back_populates="family")
     owner = relationship("User", back_populates="owned_families", foreign_keys=[owner_user_id])
     family_members = relationship("FamilyMember", back_populates="family")
