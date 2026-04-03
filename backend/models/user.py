@@ -22,5 +22,6 @@ class User(Base):
         back_populates="owner",
         foreign_keys="Family.owner_user_id"
     )
+    owned_tags = relationship("Tag", back_populates="owner")
     family_members = relationship("FamilyMember", back_populates="user")
     user_devices = relationship("UserDevice", back_populates="user")

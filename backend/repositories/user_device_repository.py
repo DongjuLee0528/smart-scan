@@ -1,7 +1,9 @@
-from sqlalchemy.orm import Session, joinedload
-from backend.models.user_device import UserDevice
-from backend.models.user import User
 from typing import Optional
+
+from sqlalchemy.orm import Session, joinedload
+
+from backend.models.user import User
+from backend.models.user_device import UserDevice
 
 
 class UserDeviceRepository:
@@ -26,6 +28,11 @@ class UserDeviceRepository:
             joinedload(UserDevice.device)
         ).filter(User.kakao_user_id == kakao_user_id).first()
 
+    def find_all_by_device_id(self, device_id: int) -> list[UserDevice]:
+        return self.db.query(UserDevice).options(
+            joinedload(UserDevice.device)
+        ).filter(UserDevice.device_id == device_id).all()
+
     def create(self, user_id: int, device_id: int) -> UserDevice:
         user_device = UserDevice(user_id=user_id, device_id=device_id)
         self.db.add(user_device)
@@ -34,4 +41,9 @@ class UserDeviceRepository:
 
     def delete(self, user_device: UserDevice) -> None:
         self.db.delete(user_device)
+        self.db.flush()
+
+    def delete_many(self, user_devices: list[UserDevice]) -> None:
+        for user_device in user_devices:
+            self.db.delete(user_device)
         self.db.flush()
