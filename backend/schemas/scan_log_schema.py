@@ -1,6 +1,6 @@
-from pydantic import BaseModel, validator
 from datetime import datetime
 from enum import Enum
+from pydantic import BaseModel, ConfigDict
 
 
 class ScanStatus(str, Enum):
@@ -21,5 +21,4 @@ class ScanLogResponse(BaseModel):
     status: ScanStatus
     scanned_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
