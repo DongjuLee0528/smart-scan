@@ -33,7 +33,7 @@ jobs:
         run: |
           cd lambdas/inbound-scanner
           pip install -r requirements.txt -t ./package --quiet
-          cp lambda_function.py ./package/
+          cp -r common repositories services lambda_function.py ./package/ 2>/dev/null || true
           cd package && zip -r ../function.zip . -q
           aws lambda update-function-code \
             --function-name smartscan-inbound \
