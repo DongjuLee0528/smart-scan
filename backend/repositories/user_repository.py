@@ -16,6 +16,9 @@ class UserRepository:
     def find_by_email(self, email: str) -> Optional[User]:
         return self.db.query(User).filter(User.email == email).first()
 
+    def find_by_phone(self, phone: str) -> Optional[User]:
+        return self.db.query(User).filter(User.phone == phone).first()
+
     def create(
         self,
         kakao_user_id: str,
