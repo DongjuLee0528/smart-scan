@@ -34,6 +34,8 @@ class TagStatusResponse(BaseModel):
     is_active: bool
     item_id: Optional[int] = None
     item_name: Optional[str] = None
+    device_id: Optional[int] = None
+    last_seen_at: Optional[datetime] = None
     last_scanned_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
