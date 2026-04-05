@@ -48,6 +48,9 @@ class Settings(BaseModel):
     EMAIL_VERIFICATION_EXPIRE_MINUTES: int = int(
         os.getenv("EMAIL_VERIFICATION_EXPIRE_MINUTES", "10")
     )
+    MONITORING_FOUND_WINDOW_MINUTES: int = int(
+        os.getenv("MONITORING_FOUND_WINDOW_MINUTES", "10")
+    )
 
     # CORS
     ALLOWED_ORIGIN: str = os.getenv("ALLOWED_ORIGIN", "http://localhost:3000")
