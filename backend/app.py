@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
         item_route,
         label_route,
         monitoring_route,
+        notification_route,
         scan_log_route,
         tag_route,
     )
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(label_route.router, prefix="/api/labels")
     # Monitoring routes are registered separately from tag CRUD routes.
     app.include_router(monitoring_route.router, prefix="/api/monitoring")
+    app.include_router(notification_route.router, prefix="/api/notifications")
     app.include_router(scan_log_route.router, prefix="/api/scan-logs")
     app.include_router(tag_route.router, prefix="/api/tags")
 
