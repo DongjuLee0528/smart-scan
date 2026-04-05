@@ -38,9 +38,7 @@ class ItemService:
         )
 
     def add_item(self, kakao_user_id: str, name: str, label_id: int) -> ItemResponse:
-        user_device = self.user_device_repository.get_by_kakao_user_id(kakao_user_id)
-        if not user_device:
-            raise NotFoundException("사용자 기기를 찾을 수 없습니다")
+        user_device = self._get_family_registered_user_device(kakao_user_id)
 
         master_tag = self.master_tag_repository.get_by_label_id_and_device_id(
             label_id, user_device.device_id
@@ -48,11 +46,10 @@ class ItemService:
         if not master_tag:
             raise NotFoundException("해당 라벨을 찾을 수 없습니다")
 
-        existing_item = self.item_repository.get_by_user_device_and_tag_uid(
-            user_device.id, master_tag.tag_uid
+        self._ensure_family_tag_uid_available(
+            family_id=user_device.device.family_id,
+            tag_uid=master_tag.tag_uid
         )
-        if existing_item:
-            raise BadRequestException("이미 사용 중인 라벨입니다")
 
         try:
             item = self.item_repository.create(
@@ -75,9 +72,7 @@ class ItemService:
             raise
 
     def update_item(self, item_id: int, kakao_user_id: str, name: str = None, label_id: int = None) -> ItemResponse:
-        user_device = self.user_device_repository.get_by_kakao_user_id(kakao_user_id)
-        if not user_device:
-            raise NotFoundException("사용자 기기를 찾을 수 없습니다")
+        user_device = self._get_family_registered_user_device(kakao_user_id)
 
         item = self.item_repository.get_by_id(item_id)
         if not item or not item.is_active:
@@ -100,11 +95,11 @@ class ItemService:
                 raise NotFoundException("해당 라벨을 찾을 수 없습니다")
 
             if master_tag.tag_uid != item.tag_uid:
-                existing_item = self.item_repository.get_by_user_device_and_tag_uid(
-                    user_device.id, master_tag.tag_uid
+                self._ensure_family_tag_uid_available(
+                    family_id=user_device.device.family_id,
+                    tag_uid=master_tag.tag_uid,
+                    exclude_item_id=item.id
                 )
-                if existing_item:
-                    raise BadRequestException("이미 사용 중인 라벨입니다")
 
                 new_tag_uid = master_tag.tag_uid
                 response_label_id = label_id
@@ -128,6 +123,28 @@ class ItemService:
         except Exception:
             self.db.rollback()
             raise
+
+    def _get_family_registered_user_device(self, kakao_user_id: str):
+        user_device = self.user_device_repository.get_by_kakao_user_id(kakao_user_id)
+        if not user_device:
+            raise NotFoundException("사용자 기기를 찾을 수 없습니다")
+        if not user_device.device or user_device.device.family_id is None:
+            raise BadRequestException("사용자 기기가 가족에 등록되어 있지 않습니다")
+        return user_device
+
+    def _ensure_family_tag_uid_available(
+        self,
+        family_id: int,
+        tag_uid: str,
+        exclude_item_id: int | None = None
+    ) -> None:
+        existing_item = self.item_repository.get_by_family_id_and_tag_uid(
+            family_id=family_id,
+            tag_uid=tag_uid,
+            exclude_item_id=exclude_item_id
+        )
+        if existing_item:
+            raise BadRequestException("이미 가족 내에서 사용 중인 라벨입니다")
 
     def delete_item(self, item_id: int, kakao_user_id: str) -> bool:
         user_device = self.user_device_repository.get_by_kakao_user_id(kakao_user_id)
