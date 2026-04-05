@@ -18,6 +18,18 @@ class ItemRepository:
         ).order_by(Item.created_at.desc())
         return self.db.execute(stmt).scalars().all()
 
+    def get_active_items_by_user_device_ids(self, user_device_ids: List[int]) -> List[Item]:
+        if not user_device_ids:
+            return []
+
+        stmt = select(Item).where(
+            and_(
+                Item.user_device_id.in_(user_device_ids),
+                Item.is_active == True
+            )
+        ).order_by(Item.created_at.desc(), Item.id.desc())
+        return self.db.execute(stmt).scalars().all()
+
     def get_active_items_with_label_by_user_device_id(self, user_device_id: int) -> List[Tuple[Item, int]]:
         stmt = select(Item, MasterTag.label_id).join(
             MasterTag,

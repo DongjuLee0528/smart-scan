@@ -21,3 +21,18 @@ class ScanLogRepository:
     def exists_by_user_device_id(self, user_device_id: int) -> bool:
         stmt = select(ScanLog.id).where(ScanLog.user_device_id == user_device_id).limit(1)
         return self.db.execute(stmt).scalar_one_or_none() is not None
+
+    def find_latest_by_item_ids(self, item_ids: list[int]) -> dict[int, ScanLog]:
+        if not item_ids:
+            return {}
+
+        stmt = select(ScanLog).where(
+            ScanLog.item_id.in_(item_ids)
+        ).order_by(ScanLog.scanned_at.desc(), ScanLog.id.desc())
+
+        latest_by_item_id: dict[int, ScanLog] = {}
+        for scan_log in self.db.execute(stmt).scalars().all():
+            if scan_log.item_id not in latest_by_item_id:
+                latest_by_item_id[scan_log.item_id] = scan_log
+
+        return latest_by_item_id
