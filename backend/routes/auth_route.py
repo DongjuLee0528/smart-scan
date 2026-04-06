@@ -1,9 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from backend.common.dependencies import get_current_user
 from backend.common.db import get_db
 from backend.common.response import success_response
 from backend.schemas.auth_schema import (
+    LoginRequest,
+    LogoutRequest,
+    RefreshRequest,
     RegisterRequest,
     SendVerificationEmailRequest,
     VerifyEmailRequest,
@@ -51,11 +55,49 @@ async def register(
         kakao_user_id=request.kakao_user_id,
         name=request.name,
         email=request.email,
+        password=request.password,
         phone=request.phone,
         age=request.age,
         family_name=request.family_name
     )
     return success_response(
         "Registration completed successfully",
+        result.model_dump()
+    )
+
+
+@router.post("/login")
+async def login(
+    request: LoginRequest,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    result = auth_service.login(request.email, request.password)
+    return success_response(
+        "Login completed successfully",
+        result.model_dump()
+    )
+
+
+@router.post("/refresh")
+async def refresh(
+    request: RefreshRequest,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    result = auth_service.refresh(request.refresh_token)
+    return success_response(
+        "Token refreshed successfully",
+        result.model_dump()
+    )
+
+
+@router.post("/logout")
+async def logout(
+    request: LogoutRequest,
+    current_user=Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    result = auth_service.logout(current_user.id, request.refresh_token)
+    return success_response(
+        "Logout completed successfully",
         result.model_dump()
     )
