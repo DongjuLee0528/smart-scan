@@ -22,21 +22,11 @@ def _validate_required_text(value: str, field_name: str) -> str:
 
 
 class SendNotificationRequest(BaseModel):
-    kakao_user_id: str
     channel: NotificationChannel
     title: str
     message: str
 
-    @field_validator("kakao_user_id", "title", "message")
-    @classmethod
-    def validate_required_text(cls, v: str, info) -> str:
-        return _validate_required_text(v, info.field_name)
-
-
-class ReadNotificationRequest(BaseModel):
-    kakao_user_id: str
-
-    @field_validator("kakao_user_id")
+    @field_validator("title", "message")
     @classmethod
     def validate_required_text(cls, v: str, info) -> str:
         return _validate_required_text(v, info.field_name)

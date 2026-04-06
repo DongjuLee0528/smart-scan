@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from backend.common.exceptions import BadRequestException, ForbiddenException, NotFoundException
-from backend.common.validator import validate_kakao_user_id, validate_non_empty_string, validate_positive_int
+from backend.common.validator import validate_non_empty_string, validate_positive_int
 from backend.repositories.family_member_repository import FamilyMemberRepository
 from backend.repositories.family_repository import FamilyRepository
 from backend.repositories.notification_repository import NotificationRepository
@@ -27,18 +27,18 @@ class NotificationService:
 
     def send_manual_notification(
         self,
-        kakao_user_id: str,
+        user_id: int,
         recipient_user_id: int,
         channel: NotificationChannel,
         title: str,
         message: str
     ) -> NotificationResponse:
-        validate_kakao_user_id(kakao_user_id)
+        validate_positive_int(user_id, "user_id")
         validate_positive_int(recipient_user_id, "user_id")
         validate_non_empty_string(title, "title")
         validate_non_empty_string(message, "message")
 
-        actor, actor_family_member, family = self._get_actor_context(kakao_user_id.strip())
+        actor, actor_family_member, family = self._get_actor_context(user_id)
         self._ensure_family_owner(actor.id, actor_family_member.role, family.owner_user_id)
         recipient_member = self._get_family_member_or_raise(family.id, recipient_user_id)
 
@@ -60,19 +60,20 @@ class NotificationService:
             self.db.rollback()
             raise
 
-    def get_my_notifications(self, kakao_user_id: str) -> NotificationListResponse:
-        actor, _, _ = self._get_actor_context(kakao_user_id)
+    def get_my_notifications(self, user_id: int) -> NotificationListResponse:
+        validate_positive_int(user_id, "user_id")
+        actor, _, _ = self._get_actor_context(user_id)
         notifications = self.notification_repository.find_all_by_recipient_user_id(actor.id)
         return NotificationListResponse(
             notifications=[self._build_notification_response(notification) for notification in notifications],
             total_count=len(notifications)
         )
 
-    def mark_as_read(self, kakao_user_id: str, notification_id: int) -> NotificationResponse:
-        validate_kakao_user_id(kakao_user_id)
+    def mark_as_read(self, user_id: int, notification_id: int) -> NotificationResponse:
+        validate_positive_int(user_id, "user_id")
         validate_positive_int(notification_id, "id")
 
-        actor, _, family = self._get_actor_context(kakao_user_id.strip())
+        actor, _, family = self._get_actor_context(user_id)
         notification = self.notification_repository.find_by_id(notification_id)
         if not notification:
             raise NotFoundException("Notification not found")
@@ -91,14 +92,15 @@ class NotificationService:
 
     def record_missing_alerts(
         self,
-        kakao_user_id: str,
+        user_id: int,
         recipient_user_id: int | None = None,
         channel: NotificationChannel = NotificationChannel.KAKAO
     ) -> NotificationListResponse:
-        actor, _, family = self._get_actor_context(kakao_user_id.strip())
+        validate_positive_int(user_id, "user_id")
+        actor, _, family = self._get_actor_context(user_id)
         target_user_id = recipient_user_id or actor.id
         recipient_member = self._get_family_member_or_raise(family.id, target_user_id)
-        member_tags = self.monitoring_service.get_member_tags(kakao_user_id, recipient_member.id)
+        member_tags = self.monitoring_service.get_member_tags(user_id, recipient_member.id)
         lost_tags = [tag for tag in member_tags.tags if tag.status == TagCurrentStatus.LOST]
 
         created_notifications = []
@@ -128,8 +130,8 @@ class NotificationService:
             self.db.rollback()
             raise
 
-    def _get_actor_context(self, kakao_user_id: str):
-        actor = self.user_repository.find_by_kakao_user_id(kakao_user_id)
+    def _get_actor_context(self, user_id: int):
+        actor = self.user_repository.find_by_id(user_id)
         if not actor:
             raise NotFoundException("User not found")
 
@@ -181,5 +183,4 @@ class NotificationService:
 
     @staticmethod
     def _dispatch_notification(notification) -> None:
-        # Stage 6 keeps external delivery as a no-op interface only.
         _ = notification

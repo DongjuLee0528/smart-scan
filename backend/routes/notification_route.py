@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from backend.common.dependencies import get_current_user
 from backend.common.db import get_db
 from backend.common.response import success_response
-from backend.schemas.notification_schema import ReadNotificationRequest, SendNotificationRequest
+from backend.schemas.notification_schema import SendNotificationRequest
 from backend.services.notification_service import NotificationService
 
 
@@ -18,10 +19,11 @@ def get_notification_service(db: Session = Depends(get_db)) -> NotificationServi
 def send_notification(
     user_id: int,
     request: SendNotificationRequest,
+    current_user=Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     result = notification_service.send_manual_notification(
-        kakao_user_id=request.kakao_user_id,
+        user_id=current_user.id,
         recipient_user_id=user_id,
         channel=request.channel,
         title=request.title,
@@ -32,21 +34,21 @@ def send_notification(
 
 @router.get("", response_model=dict)
 def get_my_notifications(
-    kakao_user_id: str = Query(..., description="카카오 사용자 ID"),
+    current_user=Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
-    result = notification_service.get_my_notifications(kakao_user_id)
+    result = notification_service.get_my_notifications(current_user.id)
     return success_response("Notifications retrieved successfully", result.model_dump())
 
 
 @router.patch("/{notification_id}/read", response_model=dict)
 def mark_notification_as_read(
     notification_id: int,
-    request: ReadNotificationRequest,
+    current_user=Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     result = notification_service.mark_as_read(
-        kakao_user_id=request.kakao_user_id,
+        user_id=current_user.id,
         notification_id=notification_id
     )
     return success_response("Notification marked as read successfully", result.model_dump())
