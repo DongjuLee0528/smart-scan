@@ -51,6 +51,17 @@ class Settings(BaseModel):
     MONITORING_FOUND_WINDOW_MINUTES: int = int(
         os.getenv("MONITORING_FOUND_WINDOW_MINUTES", "10")
     )
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "smart-scan-dev-secret")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
+        os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15")
+    )
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = int(
+        os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", "10080")
+    )
+    PASSWORD_HASH_ITERATIONS: int = int(
+        os.getenv("PASSWORD_HASH_ITERATIONS", "100000")
+    )
 
     # CORS
     ALLOWED_ORIGIN: str = os.getenv("ALLOWED_ORIGIN", "http://localhost:3000")
