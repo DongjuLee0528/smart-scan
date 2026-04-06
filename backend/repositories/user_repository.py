@@ -24,6 +24,7 @@ class UserRepository:
         kakao_user_id: str,
         name: str | None = None,
         email: str | None = None,
+        password_hash: str | None = None,
         phone: str | None = None,
         age: int | None = None
     ) -> User:
@@ -31,6 +32,7 @@ class UserRepository:
             kakao_user_id=kakao_user_id,
             name=name,
             email=email,
+            password_hash=password_hash,
             phone=phone,
             age=age
         )
@@ -43,11 +45,14 @@ class UserRepository:
         user: User,
         name: str,
         email: str,
+        password_hash: str | None = None,
         phone: str | None = None,
         age: int | None = None
     ) -> User:
         user.name = name
         user.email = email
+        if password_hash is not None:
+            user.password_hash = password_hash
         user.phone = phone
         user.age = age
         self.db.flush()
