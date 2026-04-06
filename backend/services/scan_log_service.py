@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session
-from backend.repositories.scan_log_repository import ScanLogRepository
+
+from backend.common.exceptions import ForbiddenException, NotFoundException
+from backend.common.validator import validate_positive_int
 from backend.repositories.item_repository import ItemRepository
+from backend.repositories.scan_log_repository import ScanLogRepository
 from backend.repositories.user_device_repository import UserDeviceRepository
 from backend.schemas.scan_log_schema import ScanLogResponse, ScanStatus
-from backend.common.exceptions import NotFoundException, ForbiddenException
 
 
 class ScanLogService:
@@ -13,8 +15,10 @@ class ScanLogService:
         self.item_repository = ItemRepository(db)
         self.user_device_repository = UserDeviceRepository(db)
 
-    def create_scan_log(self, kakao_user_id: str, item_id: int, status: ScanStatus) -> ScanLogResponse:
-        user_device = self.user_device_repository.get_by_kakao_user_id(kakao_user_id)
+    def create_scan_log(self, user_id: int, item_id: int, status: ScanStatus) -> ScanLogResponse:
+        validate_positive_int(user_id, "user_id")
+
+        user_device = self.user_device_repository.find_by_user_id(user_id)
         if not user_device:
             raise NotFoundException("사용자 기기를 찾을 수 없습니다")
 
