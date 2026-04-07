@@ -32,12 +32,6 @@ variable "resend_api_key" {
   sensitive   = true
 }
 
-variable "db_password" {
-  description = "RDS 마스터 비밀번호"
-  type        = string
-  sensitive   = true
-}
-
 variable "acm_cert_arn" {
   description = "CloudFront용 ACM 인증서 ARN (us-east-1 리전 발급 필수)"
   type        = string
@@ -53,6 +47,8 @@ variable "github_repo" {
 # ==========================================
 # 1. Provider 및 기본 VPC 설정
 # ==========================================
+data "aws_caller_identity" "current" {}
+
 provider "aws" {
   region = "ap-northeast-2"
 }
@@ -192,34 +188,6 @@ resource "aws_iam_role_policy" "lambda_invoke_policy" {
       }
     ]
   })
-}
-
-# ==========================================
-# 6. RDS (주석 처리 - Supabase 마이그레이션 완료)
-# 팀 확인 후 완전 제거 예정. prevent_destroy로 실수 방지.
-# ==========================================
-data "aws_db_subnet_group" "db_subnets" {
-  name = "main-db-subnets"
-}
-
-resource "aws_db_instance" "smart_home" {
-  allocated_storage      = 20
-  engine                 = "mysql"
-  engine_version         = "8.0"
-  instance_class         = "db.t3.micro"
-  db_name                = "smart_home"
-  username               = "admin"
-  password               = var.db_password
-  multi_az               = true
-  publicly_accessible    = true
-  db_subnet_group_name   = data.aws_db_subnet_group.db_subnets.name
-  vpc_security_group_ids = ["sg-0d7ea09356309516b"]
-  skip_final_snapshot    = true
-
-  lifecycle {
-    prevent_destroy = true  # Supabase 안정화 전까지 실수 삭제 방지
-    ignore_changes  = [password, engine_version]
-  }
 }
 
 # ==========================================
@@ -500,11 +468,6 @@ resource "aws_s3_bucket_policy" "web_policy" {
 # ==========================================
 # 10. 출력값 (Outputs)
 # ==========================================
-output "rds_endpoint" {
-  description = "RDS 엔드포인트 (Supabase 마이그레이션 완료 후 제거 예정)"
-  value       = aws_db_instance.smart_home.endpoint
-}
-
 output "api_gateway_url" {
   description = "API Gateway 베이스 URL"
   value       = "https://${aws_api_gateway_rest_api.api.id}.execute-api.ap-northeast-2.amazonaws.com/prod"
@@ -566,7 +529,7 @@ resource "aws_iam_role_policy" "github_actions_lambda" {
           aws_lambda_function.inbound.arn,
           aws_lambda_function.outbound.arn,
           aws_lambda_function.remote.arn,
-          "arn:aws:lambda:ap-northeast-2:771004632699:function:smartscan-chatbot"
+          "arn:aws:lambda:ap-northeast-2:${data.aws_caller_identity.current.account_id}:function:smartscan-chatbot"
         ]
       },
       {

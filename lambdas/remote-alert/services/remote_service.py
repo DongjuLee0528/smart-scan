@@ -19,6 +19,28 @@ def send_remote_alert(event) -> dict:
         return {"statusCode": 200, "headers": CORS_HEADERS, "body": ""}
 
     try:
+        # Authorization 헤더에서 Bearer 토큰 추출 및 검증
+        headers = event.get('headers') or {}
+        auth_header = headers.get('Authorization') or headers.get('authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return {
+                "statusCode": 401,
+                "headers": CORS_HEADERS,
+                "body": json.dumps({"error": "인증이 필요합니다."})
+            }
+        token = auth_header[7:]
+        try:
+            supabase_auth = get_client()
+            user_resp = supabase_auth.auth.get_user(token)
+            if not user_resp or not user_resp.user:
+                raise ValueError("유효하지 않은 토큰")
+        except Exception:
+            return {
+                "statusCode": 401,
+                "headers": CORS_HEADERS,
+                "body": json.dumps({"error": "인증에 실패했습니다."})
+            }
+
         # 1. API Gateway 이벤트 바디 파싱
         body = json.loads(event.get('body') or '{}')
         member_id = body.get('member_id')
