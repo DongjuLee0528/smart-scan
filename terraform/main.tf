@@ -1,3 +1,13 @@
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
 # ==========================================
 # variables.tf 내용 (민감 정보 분리)
 # 실제 운영 시 terraform.tfvars 파일에 값 입력
@@ -22,9 +32,16 @@ variable "resend_api_key" {
   sensitive   = true
 }
 
+variable "db_password" {
+  description = "RDS 마스터 비밀번호"
+  type        = string
+  sensitive   = true
+}
+
 variable "acm_cert_arn" {
   description = "CloudFront용 ACM 인증서 ARN (us-east-1 리전 발급 필수)"
   type        = string
+  # 주의: 계정 ID 노출 주의, tfvars에서 관리 권장
   default     = "arn:aws:acm:us-east-1:771004632699:certificate/e16c4c80-7ae0-4d54-9227-778e998a838e"
 }
 
@@ -194,7 +211,7 @@ resource "aws_db_instance" "smart_home" {
   instance_class         = "db.t3.micro"
   db_name                = "smart_home"
   username               = "admin"
-  password               = "vNxkR3FTcX2R0F4d"
+  password               = var.db_password
   multi_az               = true
   publicly_accessible    = true
   db_subnet_group_name   = data.aws_db_subnet_group.db_subnets.name
@@ -364,6 +381,7 @@ resource "aws_api_gateway_stage" "prod" {
   stage_name    = "prod"
 }
 
+# TODO: API Gateway Authorizer 연결 전까지 미사용
 resource "aws_cognito_user_pool" "pool" {
   name = "UserAuthPool"
 }
