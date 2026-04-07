@@ -230,7 +230,8 @@ class AuthService:
             raise UnauthorizedException("Refresh token is revoked")
 
         now = datetime.now(timezone.utc)
-        if refresh_token_row.expires_at <= now:
+        expires_at = self._normalize_datetime(refresh_token_row.expires_at)
+        if expires_at <= now:
             raise UnauthorizedException("Refresh token has expired")
 
         user = self.user_repository.find_by_id(int(user_id))
@@ -272,6 +273,12 @@ class AuthService:
     @staticmethod
     def _generate_verification_code() -> str:
         return str(secrets.randbelow(900000) + 100000)
+
+    @staticmethod
+    def _normalize_datetime(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
 
     def _issue_token_pair(self, user, revoke_existing: bool = True) -> AuthTokenResponse:
         issued_at = datetime.now(timezone.utc)
