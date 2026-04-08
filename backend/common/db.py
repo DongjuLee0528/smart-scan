@@ -9,7 +9,7 @@ from backend.common.config import settings
 def _build_database_url() -> str:
     database_url = (settings.DATABASE_URL or "").strip()
     if database_url:
-        return database_url.replace("postgres://", "postgresql://", 1)
+        return _normalize_database_url(database_url)
 
     required_env_names = ("DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME")
     missing_env_names = [
@@ -25,9 +25,21 @@ def _build_database_url() -> str:
         )
 
     return (
-        f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}"
-        f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}?charset=utf8mb4"
+        f"postgresql+psycopg2://{settings.DB_USER}:{settings.DB_PASSWORD}"
+        f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
     )
+
+
+def _normalize_database_url(database_url: str) -> str:
+    if database_url.startswith("mysql+pymysql://"):
+        return database_url.replace("mysql+pymysql://", "postgresql+psycopg2://", 1)
+    if database_url.startswith("mysql://"):
+        return database_url.replace("mysql://", "postgresql+psycopg2://", 1)
+    if database_url.startswith("postgres://"):
+        return database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    if database_url.startswith("postgresql://"):
+        return database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    return database_url
 
 
 SQLALCHEMY_DATABASE_URL = _build_database_url()
