@@ -2,7 +2,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from backend.common.datetime_utils import normalize_datetime
 from backend.common.exceptions import BadRequestException, ForbiddenException, NotFoundException
+from backend.common.service_base import ServiceBase
 from backend.common.validator import validate_positive_int
 from backend.repositories.family_member_repository import FamilyMemberRepository
 from backend.repositories.family_repository import FamilyRepository
@@ -23,12 +25,9 @@ from backend.schemas.monitoring_schema import (
 from backend.schemas.scan_log_schema import ScanStatus
 
 
-class MonitoringService:
+class MonitoringService(ServiceBase):
     def __init__(self, db: Session):
-        self.db = db
-        self.user_repository = UserRepository(db)
-        self.family_repository = FamilyRepository(db)
-        self.family_member_repository = FamilyMemberRepository(db)
+        super().__init__(db)
         self.tag_repository = TagRepository(db)
         self.user_device_repository = UserDeviceRepository(db)
         self.item_repository = ItemRepository(db)
@@ -110,20 +109,6 @@ class MonitoringService:
             total_count=len(my_tags)
         )
 
-    def _get_actor_context(self, user_id: int):
-        actor = self.user_repository.find_by_id(user_id)
-        if not actor:
-            raise NotFoundException("User not found")
-
-        family_member = self.family_member_repository.find_by_user_id(actor.id)
-        if not family_member:
-            raise BadRequestException("User is not assigned to a family")
-
-        family = self.family_repository.find_by_id(family_member.family_id)
-        if not family:
-            raise NotFoundException("Family not found")
-
-        return actor, family_member, family
 
     def _get_family_members_and_tag_statuses(self, family_id: int):
         family_members = self.family_member_repository.find_all_by_family_id(family_id)
@@ -188,7 +173,7 @@ class MonitoringService:
         latest_log,
         user_device_by_id: dict[int, object]
     ) -> TagStatusResponse:
-        last_seen_at = self._normalize_datetime(latest_log.scanned_at) if latest_log else None
+        last_seen_at = normalize_datetime(latest_log.scanned_at) if latest_log else None
         latest_user_device = user_device_by_id.get(latest_log.user_device_id) if latest_log else None
         status = self._resolve_tag_status(item is not None, latest_log.status if latest_log else None)
 
@@ -223,13 +208,6 @@ class MonitoringService:
             return TagCurrentStatus.LOST
         return TagCurrentStatus.REGISTERED
 
-    @staticmethod
-    def _normalize_datetime(value: datetime | None) -> datetime | None:
-        if value is None:
-            return None
-        if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value
 
     @staticmethod
     def _count_status(tags: list[TagStatusResponse], status: TagCurrentStatus) -> int:
