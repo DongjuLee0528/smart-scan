@@ -11,13 +11,7 @@ def _validate_required_text(value: str, field_name: str) -> str:
 
 
 class DeviceRegisterRequest(BaseModel):
-    kakao_user_id: str
     serial_number: str
-
-    @field_validator("kakao_user_id")
-    @classmethod
-    def validate_kakao_user_id(cls, v: str) -> str:
-        return _validate_required_text(v, "kakao_user_id")
 
     @field_validator("serial_number")
     @classmethod
@@ -42,12 +36,3 @@ class UserDeviceResponse(BaseModel):
     device: DeviceResponse
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class DeviceUnlinkRequest(BaseModel):
-    kakao_user_id: str
-
-    @field_validator("kakao_user_id")
-    @classmethod
-    def validate_kakao_user_id(cls, v: str) -> str:
-        return _validate_required_text(v, "kakao_user_id")

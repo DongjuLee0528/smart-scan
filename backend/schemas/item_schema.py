@@ -4,13 +4,11 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ItemAddRequest(BaseModel):
-    kakao_user_id: str
     name: str
     label_id: int
 
 
 class ItemUpdateRequest(BaseModel):
-    kakao_user_id: str
     name: Optional[str] = None
     label_id: Optional[int] = None
 

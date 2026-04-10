@@ -133,7 +133,7 @@ class AuthService:
         normalized_kakao_user_id = kakao_user_id.strip()
         normalized_name = name.strip()
         normalized_email = email.strip()
-        normalized_password = password.strip()
+        normalized_password = password  # 비밀번호는 공백 포함 원본 그대로 사용
         normalized_phone = phone.strip() if phone else None
         normalized_family_name = family_name.strip() if family_name else f"{normalized_name} 가족"
         validate_non_empty_string(normalized_family_name, "family_name")
@@ -207,7 +207,7 @@ class AuthService:
         validate_password(password)
 
         user = self.user_repository.find_by_email(email.strip())
-        if not user or not verify_password(password.strip(), user.password_hash):
+        if not user or not verify_password(password, user.password_hash):
             raise UnauthorizedException("Invalid email or password")
 
         try:
@@ -230,7 +230,8 @@ class AuthService:
             raise UnauthorizedException("Refresh token is revoked")
 
         now = datetime.now(timezone.utc)
-        if refresh_token_row.expires_at <= now:
+        expires_at = self._normalize_datetime(refresh_token_row.expires_at)
+        if expires_at <= now:
             raise UnauthorizedException("Refresh token has expired")
 
         user = self.user_repository.find_by_id(int(user_id))
@@ -272,6 +273,12 @@ class AuthService:
     @staticmethod
     def _generate_verification_code() -> str:
         return str(secrets.randbelow(900000) + 100000)
+
+    @staticmethod
+    def _normalize_datetime(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
 
     def _issue_token_pair(self, user, revoke_existing: bool = True) -> AuthTokenResponse:
         issued_at = datetime.now(timezone.utc)

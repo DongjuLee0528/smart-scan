@@ -1,0 +1,70 @@
+name: CI - Backend
+
+on:
+  push:
+    branches: [main, qa]
+    paths:
+      - 'backend/**'
+      - 'lambdas/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'lambdas/**'
+
+jobs:
+  lint-and-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Syntax check (compile all .py files)
+        run: |
+          find backend -name "*.py" -exec python -m py_compile {} +
+          find lambdas -name "*.py" -exec python -m py_compile {} +
+          echo "All files passed syntax check"
+
+      - name: Import check (app loads without error)
+        run: |
+          python -c "from backend.app import create_app; print('App import OK')"
+        env:
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+          JWT_SECRET_KEY: "ci-test-secret"
+          ALLOWED_ORIGIN: "http://localhost:3000"
+
+  lambda-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: pip install pytest supabase resend boto3
+
+      - name: Test inbound-scanner
+        run: PYTHONPATH=lambdas/inbound-scanner pytest lambdas/inbound-scanner/tests/ -v
+
+      - name: Test outbound-notifier
+        run: PYTHONPATH=lambdas/outbound-notifier pytest lambdas/outbound-notifier/tests/ -v
+
+      - name: Test remote-alert
+        run: PYTHONPATH=lambdas/remote-alert pytest lambdas/remote-alert/tests/ -v
+
+      - name: Test chatbot-skill-server
+        run: PYTHONPATH=lambdas/chatbot-skill-server pytest lambdas/chatbot-skill-server/tests/ -v
