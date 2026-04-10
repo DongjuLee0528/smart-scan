@@ -17,9 +17,10 @@ def get_user_by_kakao_id(kakao_user_id: str):
            .table('kakao_links')
            .select('kakao_user_id, device_id, member_id')
            .eq('kakao_user_id', kakao_user_id)
-           .maybe_single()
+           .limit(1)
            .execute())
-    return res.data
+    data = res.data if res else []
+    return data[0] if data else None
 
 
 def create_user_device(kakao_user_id: str, device_id: int, member_id: int):
