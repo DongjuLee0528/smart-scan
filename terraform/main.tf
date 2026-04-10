@@ -252,6 +252,53 @@ resource "aws_lambda_permission" "allow_apigw_inbound" {
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
+# POST /chatbot — 카카오 챗봇 스킬 서버
+resource "aws_api_gateway_resource" "chatbot" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "chatbot"
+}
+
+resource "aws_api_gateway_method" "chatbot_post" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.chatbot.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "chatbot_options" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.chatbot.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "chatbot_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.chatbot.id
+  http_method             = aws_api_gateway_method.chatbot_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.chatbot.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "chatbot_options_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.chatbot.id
+  http_method             = aws_api_gateway_method.chatbot_options.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.chatbot.invoke_arn
+}
+
+resource "aws_lambda_permission" "allow_apigw_chatbot" {
+  statement_id  = "AllowAPIGatewayInvokeChatbot"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.chatbot.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
+}
+
 # POST /remote-alert — 웹에서 원격 알림 요청
 resource "aws_api_gateway_resource" "remote_alert" {
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -295,6 +342,9 @@ resource "aws_api_gateway_deployment" "prod" {
       aws_api_gateway_resource.remote_alert,
       aws_api_gateway_method.remote_alert_post,
       aws_api_gateway_integration.remote_alert_lambda,
+      aws_api_gateway_resource.chatbot,
+      aws_api_gateway_method.chatbot_post,
+      aws_api_gateway_integration.chatbot_lambda,
     ]))
   }
 
@@ -305,6 +355,7 @@ resource "aws_api_gateway_deployment" "prod" {
   depends_on = [
     aws_api_gateway_integration.inbound_lambda,
     aws_api_gateway_integration.remote_alert_lambda,
+    aws_api_gateway_integration.chatbot_lambda,
   ]
 }
 
