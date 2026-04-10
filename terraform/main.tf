@@ -368,12 +368,6 @@ resource "aws_api_gateway_stage" "prod" {
   deployment_id = aws_api_gateway_deployment.prod.id
   rest_api_id   = aws_api_gateway_rest_api.api.id
   stage_name    = "prod"
-
-  # 메서드별 throttle은 UsagePlan으로 추가하므로 stage에는 access_log만 추가
-  access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.api_gw_logs.arn
-    format          = "$context.identity.sourceIp $context.requestTime $context.httpMethod $context.routeKey $context.status $context.responseLength $context.requestId"
-  }
 }
 
 resource "aws_api_gateway_usage_plan" "default" {

@@ -34,6 +34,14 @@ def handle_chatbot(body: dict) -> dict:
         return _handle_list(member_id)
     elif '해제' in utterance:
         return _handle_disconnect(kakao_user_id, member_id)
+    elif '등록' in utterance:
+        return make_res(True, (
+            "기기 등록 방법:\n\n"
+            "1. SmartScan 앱 또는 웹에서 로그인\n"
+            "2. [기기 관리] → [기기 등록]\n"
+            "3. 기기 시리얼 번호 입력 후 등록\n\n"
+            "기기 등록은 앱/웹에서만 가능합니다."
+        ), True)
     elif '추가' in utterance:
         return _handle_add(utterance, member_id)
     elif '삭제' in utterance or '제거' in utterance:
@@ -64,12 +72,15 @@ MAX_ITEM_NAME_LEN = 30
 
 def _handle_add(utterance: str, member_id: int) -> dict:
     # "지갑 추가", "지갑추가", "추가 지갑" 등 처리
-    m = re.search(r'(.+?)\s*추가|추가\s*(.+)', utterance)
+    # 이모지/접두사 제거 후 처리: "➕ 물품 추가" → "물품 추가"
+    clean = re.sub(r'^[^\w가-힣]+', '', utterance).strip()
+    m = re.search(r'(.+?)\s*추가|추가\s*(.+)', clean)
     if not m:
         return make_res(False, "형식: [물건명] 추가\n예) 지갑 추가", True)
 
     name = (m.group(1) or m.group(2) or '').strip()
-    if not name:
+    # "물품 추가" 버튼 그대로 눌렀을 때 name="물품"이 되는 경우 안내
+    if not name or name == '물품':
         return make_res(False, "물건 이름을 입력해 주세요.\n예) 지갑 추가", True)
 
     if len(name) > MAX_ITEM_NAME_LEN:
@@ -86,12 +97,15 @@ def _handle_add(utterance: str, member_id: int) -> dict:
 
 def _handle_delete(utterance: str, member_id: int) -> dict:
     # "지갑 삭제", "지갑 제거"
-    m = re.search(r'(.+?)\s*(삭제|제거)', utterance)
+    # 이모지/접두사 제거 후 처리: "❌ 물품 삭제" → "물품 삭제"
+    clean = re.sub(r'^[^\w가-힣]+', '', utterance).strip()
+    m = re.search(r'(.+?)\s*(삭제|제거)', clean)
     if not m:
         return make_res(False, "형식: [물건명] 삭제\n예) 지갑 삭제", True)
 
     name = m.group(1).strip()
-    if not name:
+    # "물품 삭제" 버튼 그대로 눌렀을 때 name="물품"이 되는 경우 안내
+    if not name or name == '물품':
         return make_res(False, "물건 이름을 입력해 주세요.\n예) 지갑 삭제", True)
 
     count = deactivate_item(name, member_id)
