@@ -3,6 +3,14 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 
+def _require_env_var(var_name: str) -> str:
+    """환경변수가 필수일 때 없으면 서버 시작을 중단"""
+    value = os.getenv(var_name)
+    if not value:
+        raise ValueError(f"환경변수 {var_name}이 설정되지 않았습니다. 보안상 기본값을 제공하지 않습니다.")
+    return value
+
+
 def _load_env_file() -> None:
     env_path = Path(__file__).resolve().parents[2] / ".env"
     if not env_path.exists():
@@ -51,7 +59,7 @@ class Settings(BaseModel):
     MONITORING_FOUND_WINDOW_MINUTES: int = int(
         os.getenv("MONITORING_FOUND_WINDOW_MINUTES", "10")
     )
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "smart-scan-dev-secret")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY") or _require_env_var("JWT_SECRET_KEY")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
         os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15")
