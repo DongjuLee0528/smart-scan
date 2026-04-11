@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from backend.common.dependencies import get_current_user
 from backend.common.db import get_db
 from backend.common.response import success_response
 from backend.common.route_decorators import handle_service_errors
+from backend.common.rate_limiter import limiter, auth_rate_limit, api_rate_limit
 from backend.schemas.auth_schema import (
     LoginRequest,
     LogoutRequest,
@@ -24,9 +25,11 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 
 
 @router.post("/send-verification-email")
+@limiter.limit(auth_rate_limit)
 @handle_service_errors
 async def send_verification_email(
     request: SendVerificationEmailRequest,
+    http_request: Request,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     result = auth_service.send_verification_email(request.email)
@@ -37,9 +40,11 @@ async def send_verification_email(
 
 
 @router.post("/verify-email")
+@limiter.limit(auth_rate_limit)
 @handle_service_errors
 async def verify_email(
     request: VerifyEmailRequest,
+    http_request: Request,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     result = auth_service.verify_email(request.email, request.code)
@@ -50,9 +55,11 @@ async def verify_email(
 
 
 @router.post("/register")
+@limiter.limit(auth_rate_limit)
 @handle_service_errors
 async def register(
     request: RegisterRequest,
+    http_request: Request,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     result = auth_service.register(
@@ -71,9 +78,11 @@ async def register(
 
 
 @router.post("/login")
+@limiter.limit(auth_rate_limit)
 @handle_service_errors
 async def login(
     request: LoginRequest,
+    http_request: Request,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     result = auth_service.login(request.email, request.password)
@@ -84,9 +93,11 @@ async def login(
 
 
 @router.post("/refresh")
+@limiter.limit(auth_rate_limit)
 @handle_service_errors
 async def refresh(
     request: RefreshRequest,
+    http_request: Request,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     result = auth_service.refresh(request.refresh_token)
