@@ -54,11 +54,19 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     setIsLoading(true);
+    console.log('DEBUG: API 호출 직전 - email:', email.trim(), 'password length:', password.length);
     try {
       const response = await login(email.trim(), password);
+      console.log('DEBUG: API 호출 직후 - 성공 응답:', response);
       console.log('로그인 성공:', response.name);
       navigation.navigate('Dashboard');
     } catch (error: any) {
+      console.log('DEBUG: API 호출 catch - 에러 전체:', error);
+      console.log('DEBUG: error.code:', error.code);
+      console.log('DEBUG: error.response:', error.response);
+      console.log('DEBUG: error.response?.status:', error.response?.status);
+      console.log('DEBUG: error.response?.data:', error.response?.data);
+
       let message = '로그인에 실패했습니다.';
 
       if (error.code === 'NETWORK_ERROR' || !error.response) {

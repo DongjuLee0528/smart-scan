@@ -118,13 +118,16 @@ export interface FamilyMemberListResponse {
 }
 
 export const getDashboard = async (): Promise<MonitoringDashboardResponse> => {
+  console.log('DEBUG: getDashboard 호출 시작 - URL: /api/monitoring/dashboard');
   try {
-    const response = await api.get('/monitoring/dashboard');
+    const response = await api.get('/api/monitoring/dashboard');
+    console.log('DEBUG: getDashboard 성공 응답:', response);
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
+    console.log('DEBUG: getDashboard 에러:', error);
     if (axios.isAxiosError(error)) {
       throw {
         code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
@@ -137,13 +140,16 @@ export const getDashboard = async (): Promise<MonitoringDashboardResponse> => {
 };
 
 export const getMyTags = async (): Promise<MyTagStatusListResponse> => {
+  console.log('DEBUG: getMyTags 호출 시작 - URL: /api/monitoring/my-tags');
   try {
-    const response = await api.get('/monitoring/my-tags');
+    const response = await api.get('/api/monitoring/my-tags');
+    console.log('DEBUG: getMyTags 성공 응답:', response);
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
+    console.log('DEBUG: getMyTags 에러:', error);
     if (axios.isAxiosError(error)) {
       throw {
         code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
@@ -156,13 +162,16 @@ export const getMyTags = async (): Promise<MyTagStatusListResponse> => {
 };
 
 export const getItems = async (): Promise<ItemListResponse> => {
+  console.log('DEBUG: getItems 호출 시작 - URL: /api/items');
   try {
-    const response = await api.get('/items');
+    const response = await api.get('/api/items');
+    console.log('DEBUG: getItems 성공 응답:', response);
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
+    console.log('DEBUG: getItems 에러:', error);
     if (axios.isAxiosError(error)) {
       throw {
         code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
@@ -175,13 +184,16 @@ export const getItems = async (): Promise<ItemListResponse> => {
 };
 
 export const getFamilyMembers = async (): Promise<FamilyMemberListResponse> => {
+  console.log('DEBUG: getFamilyMembers 호출 시작 - URL: /api/families/members');
   try {
-    const response = await api.get('/family-members');
+    const response = await api.get('/api/families/members');
+    console.log('DEBUG: getFamilyMembers 성공 응답:', response);
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
+    console.log('DEBUG: getFamilyMembers 에러:', error);
     if (axios.isAxiosError(error)) {
       throw {
         code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
