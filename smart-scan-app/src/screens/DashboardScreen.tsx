@@ -1,14 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import {
+  getDashboard,
+  getMyTags,
+  MonitoringDashboardResponse,
+  MyTagStatusListResponse,
+  MemberSummaryResponse,
+  TagStatus,
+} from '../api/dashboard';
+import { formatDateTime } from '../utils/dateUtils';
+
+const STATUS_COLORS = {
+  success: {
+    text: '#10B981',
+    background: '#D1FAE5',
+  },
+  neutral: {
+    text: '#6B7280',
+    background: '#F3F4F6',
+  },
+  error: {
+    text: '#EF4444',
+    background: '#FEE2E2',
+  },
+};
 
 interface StatCardProps {
   title: string;
@@ -33,17 +58,17 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, iconName, iconColor, 
 };
 
 interface FamilyMemberProps {
-  name: string;
-  role: string;
-  status: 'Normal' | 'No tags';
-  initial: string;
+  member: MemberSummaryResponse;
 }
 
-const FamilyMember: React.FC<FamilyMemberProps> = ({ name, role, status, initial }) => {
+const FamilyMember: React.FC<FamilyMemberProps> = ({ member }) => {
   const { colors } = useTheme();
 
-  const statusColor = status === 'Normal' ? '#10B981' : '#6B7280';
-  const statusBg = status === 'Normal' ? '#D1FAE5' : '#F3F4F6';
+  const hasActiveTags = member.tag_count > 0;
+  const statusText = hasActiveTags ? 'Normal' : 'No tags';
+  const statusColor = hasActiveTags ? STATUS_COLORS.success.text : STATUS_COLORS.neutral.text;
+  const statusBg = hasActiveTags ? STATUS_COLORS.success.background : STATUS_COLORS.neutral.background;
+  const initial = member.name ? member.name.charAt(0).toUpperCase() : '?';
 
   return (
     <View style={styles.memberItem}>
@@ -52,12 +77,12 @@ const FamilyMember: React.FC<FamilyMemberProps> = ({ name, role, status, initial
       </View>
       <View style={styles.memberInfo}>
         <View style={styles.memberHeader}>
-          <Text style={[styles.memberName, { color: colors.text }]}>{name}</Text>
+          <Text style={[styles.memberName, { color: colors.text }]}>{member.name || 'Unknown'}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-            <Text style={[styles.statusText, { color: statusColor }]}>{status}</Text>
+            <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
           </View>
         </View>
-        <Text style={[styles.memberRole, { color: colors.subtext }]}>{role}</Text>
+        <Text style={[styles.memberRole, { color: colors.subtext }]}>{member.role}</Text>
       </View>
     </View>
   );
@@ -89,12 +114,79 @@ const TabButton: React.FC<{
 
 export const DashboardScreen: React.FC = () => {
   const { colors, brandColor } = useTheme();
+  const [dashboardData, setDashboardData] = useState<MonitoringDashboardResponse | null>(null);
+  const [myTagsData, setMyTagsData] = useState<MyTagStatusListResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const familyMembers = [
-    { name: '황찬영', role: 'owner', status: 'No tags' as const, initial: '황' },
-    { name: '테스트', role: 'member', status: 'Normal' as const, initial: '테' },
-    { name: 'Test User', role: 'member', status: 'No tags' as const, initial: 'T' },
-  ];
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const [dashboard, myTags] = await Promise.all([
+        getDashboard(),
+        getMyTags(),
+      ]);
+
+      setDashboardData(dashboard);
+      setMyTagsData(myTags);
+    } catch (error: any) {
+      let message = '데이터를 불러오는데 실패했습니다.';
+
+      if (error.code === 'NETWORK_ERROR') {
+        message = '네트워크 연결을 확인해주세요.';
+      } else if (error.response?.status === 401) {
+        message = '로그인이 필요합니다.';
+      } else if (error.response?.status >= 500) {
+        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error.response?.data?.detail) {
+        message = error.response.data.detail;
+      }
+
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleRetry = () => {
+    fetchData();
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={brandColor} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>데이터를 불러오는 중...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.errorContent}>
+          <Ionicons name="alert-circle-outline" size={48} color={STATUS_COLORS.error.text} />
+          <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: brandColor }]}
+            onPress={handleRetry}
+          >
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!dashboardData) {
+    return null;
+  }
 
   const dynamicStyles = StyleSheet.create({
     container: {
@@ -114,13 +206,13 @@ export const DashboardScreen: React.FC = () => {
       color: colors.text,
     },
     statusBadge: {
-      backgroundColor: '#D1FAE5',
+      backgroundColor: STATUS_COLORS.success.background,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 16,
     },
     statusText: {
-      color: '#10B981',
+      color: STATUS_COLORS.success.text,
       fontSize: 12,
       fontWeight: '500',
     },
@@ -189,7 +281,7 @@ export const DashboardScreen: React.FC = () => {
   return (
     <SafeAreaView style={dynamicStyles.container}>
       <View style={dynamicStyles.header}>
-        <Text style={dynamicStyles.familyName}>우리 가족</Text>
+        <Text style={dynamicStyles.familyName}>{dashboardData.family_name}</Text>
         <View style={dynamicStyles.statusBadge}>
           <Text style={dynamicStyles.statusText}>시스템 정상</Text>
         </View>
@@ -204,31 +296,31 @@ export const DashboardScreen: React.FC = () => {
         <View style={dynamicStyles.statsGrid}>
           <StatCard
             title="전체 태그"
-            value={2}
+            value={dashboardData.summary.total_tags}
             iconName="pricetag-outline"
             iconColor={brandColor}
             backgroundColor={`${brandColor}1A`}
           />
           <StatCard
             title="정상 감지"
-            value={2}
+            value={dashboardData.summary.found_count}
             iconName="checkmark-circle-outline"
-            iconColor="#10B981"
-            backgroundColor="#D1FAE5"
+            iconColor={STATUS_COLORS.success.text}
+            backgroundColor={STATUS_COLORS.success.background}
           />
           <StatCard
             title="누락 물품"
-            value={0}
+            value={dashboardData.summary.lost_count}
             iconName="alert-circle-outline"
-            iconColor="#EF4444"
-            backgroundColor="#FEE2E2"
+            iconColor={STATUS_COLORS.error.text}
+            backgroundColor={STATUS_COLORS.error.background}
           />
           <StatCard
             title="구성원"
-            value={4}
+            value={dashboardData.summary.total_members}
             iconName="people-outline"
-            iconColor="#6B7280"
-            backgroundColor="#F3F4F6"
+            iconColor={STATUS_COLORS.neutral.text}
+            backgroundColor={STATUS_COLORS.neutral.background}
           />
         </View>
 
@@ -237,20 +329,46 @@ export const DashboardScreen: React.FC = () => {
             <Text style={dynamicStyles.sectionTitle}>가족 상태 현황</Text>
             <Text style={dynamicStyles.changeGroupText}>그룹 변경</Text>
           </View>
-          {familyMembers.map((member, index) => (
+          {dashboardData.members.map((member) => (
             <FamilyMember
-              key={index}
-              name={member.name}
-              role={member.role}
-              status={member.status}
-              initial={member.initial}
+              key={member.member_id}
+              member={member}
             />
           ))}
         </View>
 
         <View style={dynamicStyles.sectionCard}>
           <Text style={dynamicStyles.sectionTitle}>내 태그 현황</Text>
-          <Text style={dynamicStyles.emptyStateText}>등록된 태그가 없습니다.</Text>
+          {myTagsData && myTagsData.tags.length > 0 ? (
+            myTagsData.tags.map((tag) => (
+              <View key={tag.tag_id} style={[styles.tagItem, { borderBottomColor: colors.border }]}>
+                <View style={styles.tagInfo}>
+                  <Text style={[styles.tagName, { color: colors.text }]}>{tag.item_name || tag.name}</Text>
+                  <Text style={[styles.tagDetail, { color: colors.subtext }]}>마지막 감지: {tag.last_seen_at ? formatDateTime(tag.last_seen_at) : '감지되지 않음'}</Text>
+                </View>
+                <View style={[
+                  styles.tagStatusBadge,
+                  {
+                    backgroundColor: tag.status === TagStatus.FOUND ? STATUS_COLORS.success.background :
+                                   tag.status === TagStatus.LOST ? STATUS_COLORS.error.background : STATUS_COLORS.neutral.background
+                  }
+                ]}>
+                  <Text style={[
+                    styles.tagStatusText,
+                    {
+                      color: tag.status === TagStatus.FOUND ? STATUS_COLORS.success.text :
+                             tag.status === TagStatus.LOST ? STATUS_COLORS.error.text : STATUS_COLORS.neutral.text
+                    }
+                  ]}>
+                    {tag.status === TagStatus.FOUND ? '정상' :
+                     tag.status === TagStatus.LOST ? '분실' : '등록됨'}
+                  </Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={dynamicStyles.emptyStateText}>등록된 태그가 없습니다.</Text>
+          )}
         </View>
       </ScrollView>
 
@@ -266,6 +384,69 @@ export const DashboardScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  errorContent: {
+    alignItems: 'center',
+  },
+  errorText: {
+    marginTop: 16,
+    marginBottom: 24,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  tagItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'transparent',
+  },
+  tagInfo: {
+    flex: 1,
+  },
+  tagName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  tagDetail: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  tagStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  tagStatusText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
   statCard: {
     width: '48%',
     borderRadius: 12,
