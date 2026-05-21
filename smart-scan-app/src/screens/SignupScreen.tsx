@@ -15,31 +15,39 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { login } from '../api/auth';
-import { validateEmail } from '../utils/validation';
+import { signup } from '../api/auth';
+import { validateEmail, validatePassword, validatePhone, formatPhoneNumber } from '../utils/validation';
 
 type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
-  Dashboard: undefined;
 };
 
-type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
+type SignupScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Signup'>;
 
 interface Props {
-  navigation: LoginScreenNavigationProp;
+  navigation: SignupScreenNavigationProp;
 }
 
-export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+export const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, brandColor } = useTheme();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [age, setAge] = useState('');
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = useCallback(async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('오류', '이메일과 비밀번호를 모두 입력해주세요.');
+  const handlePhoneChange = useCallback((text: string) => {
+    const formatted = formatPhoneNumber(text);
+    setPhone(formatted);
+  }, []);
+
+  const handleSignup = useCallback(async () => {
+    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || !phone.trim() || !age.trim()) {
+      Alert.alert('오류', '모든 필드를 입력해주세요.');
       return;
     }
 
@@ -48,34 +56,57 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    if (password.length < 8) {
-      Alert.alert('오류', '비밀번호는 8자 이상이어야 합니다.');
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      Alert.alert('오류', `비밀번호 조건을 충족해주세요:\n${passwordValidation.errors.join('\n')}`);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    if (!validatePhone(phone.trim())) {
+      Alert.alert('오류', '올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)');
+      return;
+    }
+
+    if (!agreeToTerms) {
+      Alert.alert('오류', '이용약관 및 개인정보처리방침에 동의해주세요.');
+      return;
+    }
+
+    const ageNumber = parseInt(age);
+    if (isNaN(ageNumber) || ageNumber < 1 || ageNumber > 150) {
+      Alert.alert('오류', '유효한 나이를 입력해주세요.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await login(email.trim(), password);
-      console.log('로그인 성공:', response.name);
-      navigation.navigate('Dashboard');
+      await signup(name.trim(), email.trim(), password, phone.trim(), ageNumber);
+      Alert.alert('회원가입 성공', '회원가입이 완료되었습니다. 로그인해주세요.', [
+        { text: '확인', onPress: () => navigation.navigate('Login') }
+      ]);
     } catch (error: any) {
-      let message = '로그인에 실패했습니다.';
+      let message = '회원가입에 실패했습니다.';
 
       if (error.code === 'NETWORK_ERROR' || !error.response) {
         message = '네트워크 연결을 확인해주세요.';
-      } else if (error.response?.status === 401) {
-        message = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      } else if (error.response?.status === 409) {
+        message = '이미 사용 중인 이메일입니다.';
       } else if (error.response?.status >= 500) {
         message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
       } else if (error.response?.data?.detail) {
         message = error.response.data.detail;
       }
 
-      Alert.alert('로그인 실패', message);
+      Alert.alert('회원가입 실패', message);
     } finally {
       setIsLoading(false);
     }
-  }, [email, password]);
+  }, [name, email, password, confirmPassword, phone, age, agreeToTerms]);
 
   const styles = StyleSheet.create({
     container: {
@@ -139,15 +170,12 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       fontSize: 16,
       color: colors.text,
     },
-    passwordContainer: {
+    rowContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 16,
     },
-    forgotPassword: {
-      color: brandColor,
-      fontSize: 14,
+    halfInput: {
+      flex: 0.48,
     },
     checkboxContainer: {
       flexDirection: 'row',
@@ -172,7 +200,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       color: colors.text,
       fontSize: 14,
     },
-    loginButton: {
+    signupButton: {
       backgroundColor: brandColor,
       borderRadius: 8,
       paddingVertical: 16,
@@ -180,21 +208,21 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       marginBottom: 24,
       opacity: isLoading ? 0.7 : 1,
     },
-    loginButtonText: {
+    signupButtonText: {
       color: '#FFFFFF',
       fontSize: 16,
       fontWeight: 'bold',
     },
-    signupContainer: {
+    loginContainer: {
       flexDirection: 'row',
       justifyContent: 'center',
       marginBottom: 24,
     },
-    signupText: {
+    loginText: {
       color: colors.subtext,
       fontSize: 14,
     },
-    signupLink: {
+    loginLink: {
       color: brandColor,
       fontSize: 14,
       fontWeight: 'bold',
@@ -233,6 +261,24 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
                   <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={colors.subtext}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="이름"
+                    placeholderTextColor={colors.subtext}
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Ionicons
                     name="mail-outline"
                     size={20}
                     color={colors.subtext}
@@ -267,42 +313,91 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     secureTextEntry={true}
                   />
                 </View>
-                <View style={styles.passwordContainer}>
-                  <View />
-                  <TouchableOpacity>
-                    <Text style={styles.forgotPassword}>비밀번호 찾기</Text>
-                  </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.subtext}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="비밀번호 확인"
+                    placeholderTextColor={colors.subtext}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={true}
+                  />
+                </View>
+              </View>
+
+              <View style={[styles.inputContainer, styles.rowContainer]}>
+                <View style={[styles.inputWrapper, styles.halfInput]}>
+                  <Ionicons
+                    name="call-outline"
+                    size={20}
+                    color={colors.subtext}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="전화번호"
+                    placeholderTextColor={colors.subtext}
+                    value={phone}
+                    onChangeText={handlePhoneChange}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
+                <View style={[styles.inputWrapper, styles.halfInput]}>
+                  <Ionicons
+                    name="calendar-outline"
+                    size={20}
+                    color={colors.subtext}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="나이"
+                    placeholderTextColor={colors.subtext}
+                    value={age}
+                    onChangeText={setAge}
+                    keyboardType="number-pad"
+                  />
                 </View>
               </View>
 
               <TouchableOpacity
                 style={styles.checkboxContainer}
-                onPress={() => setRememberMe(!rememberMe)}
+                onPress={() => setAgreeToTerms(!agreeToTerms)}
               >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                  {rememberMe && (
+                <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
+                  {agreeToTerms && (
                     <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                   )}
                 </View>
-                <Text style={styles.checkboxText}>로그인 상태 유지</Text>
+                <Text style={styles.checkboxText}>이용약관 및 개인정보처리방침에 동의합니다</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.loginButton}
-                onPress={handleLogin}
+                style={styles.signupButton}
+                onPress={handleSignup}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.loginButtonText}>로그인</Text>
+                  <Text style={styles.signupButtonText}>회원가입</Text>
                 )}
               </TouchableOpacity>
 
-              <View style={styles.signupContainer}>
-                <Text style={styles.signupText}>계정이 없으신가요? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                  <Text style={styles.signupLink}>회원가입</Text>
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>이미 계정이 있으신가요? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                  <Text style={styles.loginLink}>로그인</Text>
                 </TouchableOpacity>
               </View>
             </View>
