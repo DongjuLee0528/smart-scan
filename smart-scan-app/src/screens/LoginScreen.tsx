@@ -21,6 +21,7 @@ import { validateEmail } from '../utils/validation';
 type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
+  Dashboard: undefined;
 };
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
@@ -56,6 +57,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const response = await login(email.trim(), password);
       console.log('로그인 성공:', response.name);
+      navigation.navigate('Dashboard');
     } catch (error: any) {
       let message = '로그인에 실패했습니다.';
 
