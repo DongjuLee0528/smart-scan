@@ -20,28 +20,9 @@ import {
   MyDeviceResponse,
 } from '../api/device';
 import { formatDateTime } from '../utils/dateUtils';
-
-const STATUS_COLORS = {
-  success: {
-    text: '#10B981',
-    background: '#D1FAE5',
-  },
-  neutral: {
-    text: '#6B7280',
-    background: '#F3F4F6',
-  },
-  error: {
-    text: '#EF4444',
-    background: '#FEE2E2',
-  },
-};
-
-type AuthStackParamList = {
-  Login: undefined;
-  Signup: undefined;
-  Dashboard: undefined;
-  Device: undefined;
-};
+import { STATUS_COLORS } from '../constants/colors';
+import { AuthStackParamList } from '../types/navigation';
+import { TabBar } from '../components/TabBar';
 
 type DeviceScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Device'>;
 
@@ -49,30 +30,6 @@ interface Props {
   navigation: DeviceScreenNavigationProp;
 }
 
-const TabButton: React.FC<{
-  iconName: keyof typeof Ionicons.glyphMap;
-  label: string;
-  isActive?: boolean;
-  onPress?: () => void;
-}> = ({ iconName, label, isActive = false, onPress }) => {
-  const { colors, brandColor } = useTheme();
-
-  return (
-    <TouchableOpacity style={styles.tabButton} onPress={onPress}>
-      <Ionicons
-        name={iconName}
-        size={24}
-        color={isActive ? brandColor : colors.subtext}
-      />
-      <Text style={[
-        styles.tabLabel,
-        { color: isActive ? brandColor : colors.subtext }
-      ]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-};
 
 export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, brandColor } = useTheme();
@@ -352,14 +309,6 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
       fontSize: 16,
       fontWeight: '600',
     },
-    bottomTabs: {
-      flexDirection: 'row',
-      backgroundColor: colors.card,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      paddingBottom: 20,
-      paddingTop: 10,
-    },
   });
 
   return (
@@ -450,17 +399,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </ScrollView>
 
-      <View style={dynamicStyles.bottomTabs}>
-        <TabButton
-          iconName="home-outline"
-          label="홈"
-          onPress={() => navigation.navigate('Dashboard')}
-        />
-        <TabButton iconName="hardware-chip-outline" label="디바이스" isActive={true} />
-        <TabButton iconName="cube-outline" label="물품" />
-        <TabButton iconName="people-outline" label="구성원" />
-        <TabButton iconName="notifications-outline" label="알림" />
-      </View>
+      <TabBar navigation={navigation} activeTab="Device" />
     </SafeAreaView>
   );
 };
@@ -500,14 +439,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  tabLabel: {
-    fontSize: 12,
-    marginTop: 4,
   },
 });
