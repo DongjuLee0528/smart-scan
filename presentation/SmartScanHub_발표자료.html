@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartScan Hub — 1차 발표</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css">
+<style>
+  :root {
+    --bg: #0D1117;
+    --bg2: #161B22;
+    --accent: #00C896;
+    --orange: #F5A623;
+    --blue: #1E88E5;
+    --purple: #AB47BC;
+    --red: #EF5350;
+    --text: #FFFFFF;
+    --muted: #8B949E;
+    --border: #30363D;
+  }
+
+  .reveal-viewport { background: var(--bg); }
+  .reveal .slides section { background: var(--bg); text-align: left; }
+
+  /* ── 공통 헤더 ── */
+  .slide-header {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 18px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-bar { width: 5px; height: 48px; background: var(--accent); flex-shrink: 0; margin-top: 2px; }
+  .header-text h2 { margin: 0; font-size: 1.6em; color: var(--text); font-weight: 700; line-height: 1.1; }
+  .header-text p  { margin: 2px 0 0; font-size: 0.55em; color: var(--muted); }
+
+  /* ── 표지 ── */
+  .cover-wrap { text-align: center; padding: 10px 0; }
+  .cover-subtitle { color: var(--muted); font-size: 0.75em; margin-bottom: 4px; }
+  .cover-title {
+    font-size: 3.2em; font-weight: 900; color: var(--accent);
+    font-family: Arial Black, sans-serif; line-height: 1;
+    margin: 6px 0 14px;
+    text-shadow: 0 0 60px rgba(0,200,150,0.3);
+  }
+  .cover-desc { color: var(--text); font-size: 0.7em; margin-bottom: 40px; }
+  .cover-divider { width: 100%; height: 3px; background: var(--accent); margin: 10px 0; }
+  .cover-team { color: var(--text); font-size: 0.65em; margin: 8px 0 4px; }
+  .cover-team span { color: var(--muted); }
+  .cover-year { color: var(--muted); font-size: 0.55em; }
+
+  /* ── 목차 ── */
+  .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 30px; margin-top: 4px; }
+  .toc-item { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+  .toc-num {
+    width: 32px; height: 32px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.55em; font-weight: 700;
+    background: var(--bg2); color: var(--accent);
+    border: 1px solid var(--border); flex-shrink: 0;
+  }
+  .toc-num.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .toc-label { font-size: 0.65em; color: var(--text); }
+
+  /* ── 카드 ── */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card {
+    background: var(--bg2); border-radius: 4px;
+    padding: 14px 16px; position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%;
+  }
+  .card.accent::before  { background: var(--accent); }
+  .card.blue::before    { background: var(--blue); }
+  .card.orange::before  { background: var(--orange); }
+  .card.purple::before  { background: var(--purple); }
+  .card.red::before     { background: var(--red); }
+  .card.muted::before   { background: var(--border); }
+  .card-name  { font-size: 0.7em; font-weight: 700; color: var(--text); margin: 0 0 2px 12px; }
+  .card-role  { font-size: 0.52em; margin: 2px 0 6px 12px; }
+  .card-role.accent  { color: var(--accent); }
+  .card-role.blue    { color: var(--blue); }
+  .card-role.orange  { color: var(--orange); }
+  .card-role.purple  { color: var(--purple); }
+  .card-desc  { font-size: 0.5em; color: var(--muted); line-height: 1.6; margin: 0 0 0 12px; }
+  .collab-bar {
+    background: #0A1628; border: 1px solid var(--blue);
+    padding: 7px 14px; margin-top: 10px;
+    font-size: 0.52em; color: var(--blue);
+  }
+
+  /* ── 마일스톤 테이블 ── */
+  .ms-table { width: 100%; border-collapse: collapse; font-size: 0.5em; margin-top: 6px; }
+  .ms-table th {
+    background: #1C2333; color: var(--muted);
+    padding: 5px 8px; text-align: center; border: 1px solid var(--border);
+    font-weight: 700;
+  }
+  .ms-table td {
+    padding: 5px 8px; border: 1px solid #21262D;
+    color: var(--text); vertical-align: middle;
+  }
+  .ms-table tr:nth-child(even) td { background: #0A0F17; }
+  .ms-table tr.special td { background: #130808; }
+  .ms-table tr.dim td { color: var(--muted); }
+  .ms-bar { display: inline-block; width: 4px; height: 100%; margin-right: 8px; }
+  .step-label { font-weight: 700; }
+  .status-done    { color: var(--accent); }
+  .status-wip     { color: var(--orange); }
+  .status-pending { color: var(--muted); }
+
+  /* ── 이미지 placeholder ── */
+  .img-placeholder {
+    background: var(--bg2); border: 2px dashed var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 360px; border-radius: 4px;
+  }
+  .img-placeholder .ph-label { font-size: 1.2em; color: var(--border); margin-bottom: 8px; }
+  .img-placeholder .ph-desc  { font-size: 0.55em; color: var(--muted); text-align: center; }
+
+  /* ── DB 스키마 ── */
+  .db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .db-card {
+    background: var(--bg2); border-radius: 4px;
+    padding: 8px 12px 8px 16px; position: relative; overflow: hidden;
+  }
+  .db-card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%;
+  }
+  .db-card.accent::before  { background: var(--accent); }
+  .db-card.blue::before    { background: var(--blue); }
+  .db-card.orange::before  { background: var(--orange); }
+  .db-card.purple::before  { background: var(--purple); }
+  .db-card.red::before     { background: var(--red); }
+  .db-name { font-family: Consolas, monospace; font-size: 0.6em; font-weight: 700; }
+  .db-name.accent  { color: var(--accent); }
+  .db-name.blue    { color: var(--blue); }
+  .db-name.orange  { color: var(--orange); }
+  .db-name.purple  { color: var(--purple); }
+  .db-name.red     { color: var(--red); }
+  .db-cols { font-family: Consolas, monospace; font-size: 0.44em; color: var(--muted); margin: 3px 0 2px; line-height: 1.4; }
+  .db-desc { font-size: 0.48em; color: var(--text); }
+
+  /* ── 프론트엔드 ── */
+  .fe-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .fe-list { background: var(--bg2); padding: 14px; }
+  .fe-list h4 { font-size: 0.65em; color: var(--accent); margin: 0 0 10px; font-weight: 700; }
+  .fe-item {
+    background: #0D1117; border-left: 4px solid var(--orange);
+    padding: 6px 10px; margin-bottom: 8px;
+  }
+  .fe-item-title { font-size: 0.55em; font-weight: 700; color: var(--text); }
+  .fe-item-sub   { font-size: 0.5em; color: var(--muted); margin-top: 2px; }
+
+  /* ── Lambda 카드 ── */
+  .lambda-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .lambda-card { background: var(--bg2); padding: 12px 14px; position: relative; overflow: hidden; }
+  .lambda-card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 100%; height: 4px;
+  }
+  .lambda-card.accent::before  { background: var(--accent); }
+  .lambda-card.orange::before  { background: var(--orange); }
+  .lambda-card.blue::before    { background: var(--blue); }
+  .lambda-card.purple::before  { background: var(--purple); }
+  .lambda-name { font-family: Consolas, monospace; font-size: 0.58em; font-weight: 700; margin-bottom: 4px; }
+  .lambda-name.accent  { color: var(--accent); }
+  .lambda-name.orange  { color: var(--orange); }
+  .lambda-name.blue    { color: var(--blue); }
+  .lambda-name.purple  { color: var(--purple); }
+  .lambda-role { font-size: 0.52em; color: var(--text); font-weight: 600; margin-bottom: 6px; }
+  .lambda-desc { font-size: 0.48em; color: var(--muted); line-height: 1.5; }
+  .chatbot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .chatbot-detail { background: var(--bg2); padding: 14px; border: 1px solid var(--purple); }
+  .chatbot-detail h4 { font-size: 0.62em; font-weight: 700; color: var(--purple); margin: 0 0 10px; }
+  .chatbot-detail ul { margin: 0; padding-left: 16px; }
+  .chatbot-detail li { font-size: 0.5em; color: var(--text); margin-bottom: 7px; line-height: 1.5; }
+
+  /* ── 기대 결과물 ── */
+  .evolution-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; align-items: center; }
+  .evo-card { padding: 14px; text-align: center; position: relative; }
+  .evo-card.legacy { background: #1A1A1A; border: 1px solid var(--border); }
+  .evo-card.proto  { background: var(--bg2); border: 1px solid var(--blue); }
+  .evo-card.final  { background: var(--accent); border: 2px solid var(--accent); }
+  .evo-title { font-size: 0.6em; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+  .evo-title.muted { color: var(--muted); }
+  .evo-title.blue  { color: var(--blue); }
+  .evo-title.dark  { color: #000; }
+  .evo-desc { font-size: 0.5em; line-height: 1.6; }
+  .evo-desc.muted  { color: var(--muted); }
+  .evo-desc.text   { color: var(--text); }
+  .evo-desc.dark   { color: #000; }
+  .evo-arrow { font-size: 1.4em; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+  .comp-table { width: 100%; border-collapse: collapse; font-size: 0.48em; }
+  .comp-table th { background: #1C2333; color: var(--muted); padding: 6px 10px; border: 1px solid var(--border); font-weight: 700; }
+  .comp-table td { padding: 6px 10px; border: 1px solid var(--border); background: var(--bg2); }
+  .comp-table td:nth-child(2) { color: var(--accent); }
+  .comp-label { font-size: 0.52em; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+  .comp-note  { font-size: 0.48em; color: var(--muted); text-align: right; }
+
+  /* ── Q&A ── */
+  .qa-wrap { text-align: center; padding: 20px 0; }
+  .qa-thanks { font-size: 0.75em; color: var(--muted); margin-bottom: 8px; }
+  .qa-title { font-size: 4em; font-weight: 900; color: var(--text); font-family: Arial Black, sans-serif; margin: 0 0 14px; }
+  .qa-divider { height: 3px; background: var(--accent); margin: 10px 0; }
+  .qa-kor { font-size: 1.5em; font-weight: 700; color: var(--text); margin: 10px 0 4px; }
+  .qa-sub { font-size: 0.65em; color: var(--muted); }
+  .qa-footer { font-size: 0.5em; color: var(--muted); margin-top: 40px; }
+
+  /* ── reveal.js overrides ── */
+  .reveal h2 { font-size: 1em; margin: 0; }
+  .reveal ul, .reveal ol { display: block; margin-left: 0; }
+  .reveal section { padding: 28px 40px 20px; }
+  .reveal .slide-number { color: var(--muted); font-size: 12px; }
+  .reveal .progress { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ════ SLIDE 1: 표지 ════ -->
+<section>
+  <div class="cover-wrap">
+    <div class="cover-subtitle">두고간 물건을 알려주는</div>
+    <div class="cover-title">Smart-Scan Hub</div>
+    <div class="cover-desc">UHF RFID 기반 노터치 소지품 자동 체크 시스템</div>
+    <div class="cover-divider"></div>
+    <div class="cover-team"><span>5조  |  </span>김준표 &nbsp; 박준영 &nbsp; 이동주 &nbsp; 임재영 &nbsp; 황찬영</div>
+    <div class="cover-year">2026년  |  IoT 융합 프로젝트  1차 발표</div>
+    <div class="cover-divider"></div>
+  </div>
+</section>
+
+<!-- ════ SLIDE 2: 목차 ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>목차</h2>
+      <p>INDEX</p>
+    </div>
+  </div>
+  <div class="toc-grid">
+    <div class="toc-item">
+      <div class="toc-num">01</div>
+      <div class="toc-label">팀원 역할 분담</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">06</div>
+      <div class="toc-label">CI/CD 파이프라인</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">02</div>
+      <div class="toc-label">기술 스택</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">07</div>
+      <div class="toc-label">DB 스키마</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">03</div>
+      <div class="toc-label">프로젝트 개요</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">08</div>
+      <div class="toc-label">프론트엔드 구성 / UI</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num active">04</div>
+      <div class="toc-label">스케줄 &amp; 마일스톤</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">09</div>
+      <div class="toc-label">백엔드 구성 / 챗봇 구현</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">05</div>
+      <div class="toc-label">시스템 아키텍처 / 네트워크 구성</div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">10</div>
+      <div class="toc-label">기대 결과물</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ SLIDE 3: 팀원 역할 ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>팀원 역할 분담</h2>
+      <p>Roles &amp; Responsibilities</p>
+    </div>
+  </div>
+  <div class="card-grid">
+    <div class="card accent">
+      <div class="card-name">황찬영</div>
+      <div class="card-role accent">클라우드 + Lambda + 인프라</div>
+      <div class="card-desc">Supabase 설정 / DB 스키마<br>Lambda 4개 / Terraform<br>CI/CD / Raspberry Pi RFID</div>
+    </div>
+    <div class="card blue">
+      <div class="card-name">이동주</div>
+      <div class="card-role blue">백엔드</div>
+      <div class="card-desc">FastAPI (Render)<br>비즈니스 로직 (CRUD)<br>가족관리 / 대시보드</div>
+    </div>
+    <div class="card orange">
+      <div class="card-name">임재영 / 김준표</div>
+      <div class="card-role orange">프론트엔드</div>
+      <div class="card-desc">웹사이트 (HTML/CSS/JS)<br>supabase-js 연동<br>S3 + CloudFront 배포</div>
+    </div>
+    <div class="card purple">
+      <div class="card-name">박준영</div>
+      <div class="card-role purple">카카오 챗봇</div>
+      <div class="card-desc">카카오 오픈빌더<br>챗봇 시나리오 설계<br>Lambda chatbot 연동</div>
+    </div>
+  </div>
+  <div class="collab-bar">
+    협업 방식: 주 2회 온라인 Discord 미팅 &nbsp;+&nbsp; GitHub PR 코드 리뷰 &nbsp;+&nbsp; Notion 문서 공유
+  </div>
+</section>
+
+<!-- ════ SLIDE 4: 스케줄 & 마일스톤 ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>프로젝트 스케줄 &amp; 마일스톤</h2>
+      <p>총 15주차 | 2026.03.02 ~ 2026.06.14 | 1차 발표: 7주차 | 최종 발표: 15주차</p>
+    </div>
+  </div>
+  <table class="ms-table">
+    <thead>
+      <tr>
+        <th>단계</th><th>마일스톤</th><th>주차/기간</th><th>주요 작업</th><th>상태</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="step-label" style="color:var(--accent)">M1</span></td>
+        <td>기획 &amp; 설계</td>
+        <td style="color:var(--muted);text-align:center">1~3주 / 3/2~3/22</td>
+        <td>팀 구성, 아키텍처 설계, DB 스키마, 역할 분담</td>
+        <td><span class="status-done">✅ 완료</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-label" style="color:var(--accent)">M2</span></td>
+        <td>인프라 &amp; 백엔드</td>
+        <td style="color:var(--muted);text-align:center">4~5주 / 3/23~4/5</td>
+        <td>Supabase, Lambda 4개, FastAPI 9개 API, CI/CD, 챗봇</td>
+        <td><span class="status-done">✅ 완료</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-label" style="color:var(--orange)">M3</span></td>
+        <td>프론트엔드 착수</td>
+        <td style="color:var(--muted);text-align:center">6주 / 4/6~4/12</td>
+        <td>웹 UI 구현 시작, S3+CloudFront 배포 구성</td>
+        <td><span class="status-wip">🔄 진행중</span></td>
+      </tr>
+      <tr class="special">
+        <td><span class="step-label" style="color:var(--red)">🎯</span></td>
+        <td style="font-weight:700">1차 발표</td>
+        <td style="color:var(--muted);text-align:center">7주 / 4/13~4/19</td>
+        <td>프로젝트 기획 &amp; 설계 발표</td>
+        <td><span class="status-pending">⏳ 예정</span></td>
+      </tr>
+      <tr class="dim">
+        <td><span class="step-label">⏸</span></td>
+        <td>중간고사</td>
+        <td style="text-align:center">8주 / 4/20~4/26</td>
+        <td>중간고사 기간</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><span class="step-label" style="color:var(--blue)">M4</span></td>
+        <td>프론트 완성 + HW 연결</td>
+        <td style="color:var(--muted);text-align:center">9~10주 / 4/27~5/10</td>
+        <td>웹 UI 완성, 장비 도착 후 Pi + RFID 리더기 물리 연결</td>
+        <td><span class="status-pending">⏳ 예정</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-label" style="color:var(--blue)">M5</span></td>
+        <td>RFID 실제 동작 테스트</td>
+        <td style="color:var(--muted);text-align:center">11~12주 / 5/11~5/24</td>
+        <td>RFID 실제 통신 테스트, 스캔→Lambda→이메일 전체 흐름 검증</td>
+        <td><span class="status-pending">⏳ 예정</span></td>
+      </tr>
+      <tr>
+        <td><span class="step-label" style="color:var(--blue)">M6</span></td>
+        <td>최종 점검 &amp; 데모 준비</td>
+        <td style="color:var(--muted);text-align:center">13~14주 / 5/25~6/7</td>
+        <td>전체 통합 테스트, 버그 수정, 발표자료 제작</td>
+        <td><span class="status-pending">⏳ 예정</span></td>
+      </tr>
+      <tr class="special">
+        <td><span class="step-label" style="color:var(--red)">🏁</span></td>
+        <td style="font-weight:700">최종 발표 (2차)</td>
+        <td style="color:var(--muted);text-align:center">15주 / 6/8~6/14</td>
+        <td>최종 발표 및 실제 RFID 시연</td>
+        <td><span class="status-pending">⏳ 예정</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ════ SLIDE 5: 아키텍처 / 네트워크 ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>시스템 아키텍처 / 네트워크 구성</h2>
+      <p>SmartScan Hub — 3-Zone Network Architecture</p>
+    </div>
+  </div>
+  <div class="img-placeholder">
+    <div class="ph-label">[ 이미지 삽입 ]</div>
+    <div class="ph-desc">카카오톡으로 전송한 <strong>SmartScan Hub — 네트워크 구성도</strong> 이미지를 여기에 삽입하세요</div>
+  </div>
+</section>
+
+<!-- ════ SLIDE 6: CI/CD ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>CI/CD — 깃허브 액션 파이프라인</h2>
+      <p>main 브랜치 push 시 3개 대상 자동 배포</p>
+    </div>
+  </div>
+  <div class="img-placeholder">
+    <div class="ph-label">[ 이미지 삽입 ]</div>
+    <div class="ph-desc">카카오톡으로 전송한 <strong>CI/CD 파이프라인 다이어그램</strong> 이미지를 여기에 삽입하세요</div>
+  </div>
+</section>
+
+<!-- ════ SLIDE 7: DB 스키마 ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>DB 스키마 (Supabase PostgreSQL)</h2>
+      <p>9개 테이블 | RLS 적용 | 복합 인덱스 4개 | View + RPC 함수 포함</p>
+    </div>
+  </div>
+  <div class="db-grid">
+    <div class="db-card accent">
+      <div class="db-name accent">`profiles`</div>
+      <div class="db-cols">id(UUID,PK), name, email, phone, age, role</div>
+      <div class="db-desc">사용자 프로필 (Supabase Auth 연동)</div>
+    </div>
+    <div class="db-card red">
+      <div class="db-name red">`kakao_links`</div>
+      <div class="db-cols">kakao_user_id(PK), member_id(FK), device_id(FK)</div>
+      <div class="db-desc">카카오 챗봇 연동 (ID ↔ 구성원)</div>
+    </div>
+    <div class="db-card blue">
+      <div class="db-name blue">`families`</div>
+      <div class="db-cols">id, owner_id(FK→profiles), name</div>
+      <div class="db-desc">가족 그룹</div>
+    </div>
+    <div class="db-card blue">
+      <div class="db-name blue">`family_members`</div>
+      <div class="db-cols">id, family_id, profile_id, name, phone, email, role</div>
+      <div class="db-desc">가족 구성원 (Owner 관리)</div>
+    </div>
+    <div class="db-card orange">
+      <div class="db-name orange">`devices`</div>
+      <div class="db-cols">id, serial_number, family_id, name, is_active</div>
+      <div class="db-desc">RFID 리더기 기기</div>
+    </div>
+    <div class="db-card orange">
+      <div class="db-name orange">`items`</div>
+      <div class="db-cols">id, member_id(FK→family_members), name, is_required</div>
+      <div class="db-desc">소지품 (구성원별 개인 소유)</div>
+    </div>
+    <div class="db-card purple">
+      <div class="db-name purple">`tags`</div>
+      <div class="db-cols">id, tag_uid, item_id, device_id, label</div>
+      <div class="db-desc">RFID 태그 (소지품에 부착)</div>
+    </div>
+    <div class="db-card purple">
+      <div class="db-name purple">`scan_logs`</div>
+      <div class="db-cols">id, device_id, tag_uid, rssi, scanned_at</div>
+      <div class="db-desc">RFID 스캔 이력</div>
+    </div>
+    <div class="db-card red">
+      <div class="db-name red">`notifications`</div>
+      <div class="db-cols">id, member_id, type, title, message, is_read, sent_via</div>
+      <div class="db-desc">알림 기록 (누락/원격/시스템)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ SLIDE 8: 프론트엔드 ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>프론트엔드 구성 / 로직</h2>
+      <p>HTML / CSS / JavaScript + supabase-js | S3 + CloudFront 정적 호스팅</p>
+    </div>
+  </div>
+  <div class="fe-wrap">
+    <div class="fe-list">
+      <h4>구현 페이지</h4>
+      <div class="fe-item">
+        <div class="fe-item-title">회원가입 / 로그인</div>
+        <div class="fe-item-sub">Supabase Auth 이메일 인증</div>
+      </div>
+      <div class="fe-item">
+        <div class="fe-item-title">가족 구성원 관리</div>
+        <div class="fe-item-sub">Owner/Member 역할 기반</div>
+      </div>
+      <div class="fe-item">
+        <div class="fe-item-title">소지품 + 태그 관리</div>
+        <div class="fe-item-sub">구성원별 개인 소지품</div>
+      </div>
+      <div class="fe-item">
+        <div class="fe-item-title">기기 등록</div>
+        <div class="fe-item-sub">시리얼 넘버 입력</div>
+      </div>
+      <div class="fe-item">
+        <div class="fe-item-title">가족 대시보드</div>
+        <div class="fe-item-sub">Supabase Realtime WebSocket</div>
+      </div>
+      <div class="fe-item">
+        <div class="fe-item-title">원격 알림 발송</div>
+        <div class="fe-item-sub">부모 → 자녀 직접 알림</div>
+      </div>
+    </div>
+    <div class="img-placeholder" style="min-height:0">
+      <div class="ph-label" style="font-size:0.9em">[ UI 스크린샷 삽입 ]</div>
+      <div class="ph-desc">프론트엔드 구현 화면을 여기에 삽입하세요</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ SLIDE 9: 백엔드 / 챗봇 ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>백엔드 구성 / 챗봇 구현</h2>
+      <p>FastAPI (Render) + AWS Lambda 4개 + 카카오 오픈빌더</p>
+    </div>
+  </div>
+  <div class="lambda-grid">
+    <div class="lambda-card accent">
+      <div class="lambda-name accent">λ&nbsp; inbound</div>
+      <div class="lambda-role">스캔 수신</div>
+      <div class="lambda-desc">scan_logs INSERT<br>→ RPC 누락 체크<br>→ outbound 호출</div>
+    </div>
+    <div class="lambda-card orange">
+      <div class="lambda-name orange">λ&nbsp; outbound</div>
+      <div class="lambda-role">누락 알림</div>
+      <div class="lambda-desc">notifications INSERT<br>→ Resend 이메일 발송</div>
+    </div>
+    <div class="lambda-card blue">
+      <div class="lambda-name blue">λ&nbsp; remote</div>
+      <div class="lambda-role">원격 알림</div>
+      <div class="lambda-desc">가족 구성원에게<br>직접 알림 발송</div>
+    </div>
+    <div class="lambda-card purple">
+      <div class="lambda-name purple">λ&nbsp; chatbot</div>
+      <div class="lambda-role">챗봇 응답</div>
+      <div class="lambda-desc">카카오 Webhook<br>→ DB 조회/등록</div>
+    </div>
+  </div>
+  <div class="chatbot-row">
+    <div class="chatbot-detail">
+      <h4>카카오 챗봇 구현</h4>
+      <ul>
+        <li>카카오 오픈빌더 Webhook 방식 연동</li>
+        <li>버튼형 UI (기기 등록 / 목록 확인 / 물품 추가·삭제 / 기기 해제)</li>
+        <li>카카오 ID → <code style="color:var(--purple)">kakao_links</code> 테이블로 사용자 매핑</li>
+        <li>미연동 사용자 → smartscan-hub.com 안내 메시지 발송</li>
+      </ul>
+    </div>
+    <div class="img-placeholder" style="min-height:0">
+      <div class="ph-label" style="font-size:0.9em">[ 챗봇 스크린샷 삽입 ]</div>
+      <div class="ph-desc">카카오 챗봇 구현 화면을 삽입하세요</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ SLIDE 10: 기대 결과물 ════ -->
+<section>
+  <div class="slide-header">
+    <div class="header-bar"></div>
+    <div class="header-text">
+      <h2>기대 결과물</h2>
+      <p>제품 진화 &amp; 사업화 전망</p>
+    </div>
+  </div>
+  <div class="evolution-grid">
+    <div class="evo-card legacy">
+      <div class="evo-title muted">기존 제품들<br>(AirTag / SmartTag)</div>
+      <div class="evo-desc muted">분실 후 사후 추적 방식<br>개당 3~4만원, OS 종속<br>자동 다중 스캔 불가</div>
+    </div>
+    <div class="evo-arrow">→</div>
+    <div class="evo-card proto">
+      <div class="evo-title blue">프로토타입<br>(SmartScan Hub)</div>
+      <div class="evo-desc text">UHF RFID 자동 다중 스캔<br>웹 + 챗봇 + 이메일 알림<br>가족 단위 소지품 관리</div>
+    </div>
+    <div class="evo-arrow">→</div>
+    <div class="evo-card final">
+      <div class="evo-title dark">상용화 최종 제품</div>
+      <div class="evo-desc dark">Orange Pi → 원가 50% 절감<br>월 9,900원 HaaS 구독 모델<br>캡티브 포털 자동 WiFi</div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+    <div class="comp-label">작동 OS / 환경 비교</div>
+    <div class="comp-note">태그 3개 기준 — 소지품 4개째부터 SmartScan Hub가 저렴</div>
+  </div>
+  <table class="comp-table">
+    <thead>
+      <tr>
+        <th>항목</th>
+        <th>SmartScan Hub</th>
+        <th>Apple AirTag</th>
+        <th>Samsung SmartTag2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>기기 구동 OS</td>
+        <td>Armbian Linux (Orange Pi)</td>
+        <td style="color:var(--muted)">전용 U1칩 (OS 없음)</td>
+        <td style="color:var(--muted)">전용 BLE칩 (OS 없음)</td>
+      </tr>
+      <tr>
+        <td>사용자 앱</td>
+        <td>웹 브라우저 + 카카오톡</td>
+        <td style="color:var(--muted)">iOS/iPadOS 전용</td>
+        <td style="color:var(--muted)">Android 전용 (SmartThings)</td>
+      </tr>
+      <tr>
+        <td>스마트폰 제한</td>
+        <td>없음 (모든 기기 접속)</td>
+        <td style="color:var(--muted)">iPhone 필수 (iOS 14.5+)</td>
+        <td style="color:var(--muted)">Samsung Galaxy 권장</td>
+      </tr>
+      <tr>
+        <td>스마트폰 없이 작동</td>
+        <td>✅ 독립 작동</td>
+        <td style="color:var(--red)">❌</td>
+        <td style="color:var(--red)">❌</td>
+      </tr>
+      <tr>
+        <td>태그 추가 단가</td>
+        <td>~1,000원 / 개</td>
+        <td style="color:var(--muted)">39,000원 / 개</td>
+        <td style="color:var(--muted)">39,000~45,000원 / 개</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ════ SLIDE 11: Q&A ════ -->
+<section>
+  <div class="qa-wrap">
+    <div class="qa-thanks">Thank You</div>
+    <div class="qa-title">Q &amp; A</div>
+    <div class="qa-divider"></div>
+    <div class="qa-kor">감사합니다</div>
+    <div class="qa-sub">들어주셔서 감사합니다.</div>
+    <div class="qa-divider"></div>
+    <div class="qa-footer">SmartScan Hub — 5조 | IoT 융합 프로젝트</div>
+  </div>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    progress: true,
+    transition: 'fade',
+    backgroundTransition: 'fade',
+    width: 1280,
+    height: 720,
+    margin: 0.04,
+    controls: true,
+    keyboard: true,
+    overview: true,
+    center: false,
+    touch: true,
+  });
+</script>
+</body>
+</html>
