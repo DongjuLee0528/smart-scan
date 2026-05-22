@@ -3,11 +3,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
+import { DeviceScreen } from '../screens/DeviceScreen';
 
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
   Dashboard: undefined;
+  Device: undefined;
 };
 
 const Stack = createStackNavigator<AuthStackParamList>();
@@ -23,6 +25,7 @@ export const AuthNavigator: React.FC = () => {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      <Stack.Screen name="Device" component={DeviceScreen} />
     </Stack.Navigator>
   );
 };

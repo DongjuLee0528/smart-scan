@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { StackNavigationProp } from '@react-navigation/stack';
 import {
   getDashboard,
   getMyTags,
@@ -19,6 +20,15 @@ import {
   TagStatus,
 } from '../api/dashboard';
 import { formatDateTime } from '../utils/dateUtils';
+
+type AuthStackParamList = {
+  Login: undefined;
+  Signup: undefined;
+  Dashboard: undefined;
+  Device: undefined;
+};
+
+type DashboardScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Dashboard'>;
 
 const STATUS_COLORS = {
   success: {
@@ -92,11 +102,12 @@ const TabButton: React.FC<{
   iconName: keyof typeof Ionicons.glyphMap;
   label: string;
   isActive?: boolean;
-}> = ({ iconName, label, isActive = false }) => {
+  onPress?: () => void;
+}> = ({ iconName, label, isActive = false, onPress }) => {
   const { colors, brandColor } = useTheme();
 
   return (
-    <TouchableOpacity style={styles.tabButton}>
+    <TouchableOpacity style={styles.tabButton} onPress={onPress}>
       <Ionicons
         name={iconName}
         size={24}
@@ -112,7 +123,11 @@ const TabButton: React.FC<{
   );
 };
 
-export const DashboardScreen: React.FC = () => {
+interface Props {
+  navigation: DashboardScreenNavigationProp;
+}
+
+export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, brandColor } = useTheme();
   const [dashboardData, setDashboardData] = useState<MonitoringDashboardResponse | null>(null);
   const [myTagsData, setMyTagsData] = useState<MyTagStatusListResponse | null>(null);
@@ -374,7 +389,11 @@ export const DashboardScreen: React.FC = () => {
 
       <View style={dynamicStyles.bottomTabs}>
         <TabButton iconName="home-outline" label="홈" isActive={true} />
-        <TabButton iconName="hardware-chip-outline" label="디바이스" />
+        <TabButton
+          iconName="hardware-chip-outline"
+          label="디바이스"
+          onPress={() => navigation.navigate('Device')}
+        />
         <TabButton iconName="cube-outline" label="물품" />
         <TabButton iconName="people-outline" label="구성원" />
         <TabButton iconName="notifications-outline" label="알림" />
