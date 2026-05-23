@@ -4,4 +4,5 @@ export type AuthStackParamList = {
   Dashboard: undefined;
   Device: undefined;
   Item: undefined;
+  Member: undefined;
 };
