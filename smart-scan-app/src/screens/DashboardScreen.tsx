@@ -23,6 +23,7 @@ import { formatDateTime } from '../utils/dateUtils';
 import { STATUS_COLORS } from '../constants/colors';
 import { AuthStackParamList } from '../types/navigation';
 import { TabBar } from '../components/TabBar';
+import { handleApiError } from '../utils/errorHandler';
 
 type DashboardScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Dashboard'>;
 
@@ -104,18 +105,7 @@ export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
       setDashboardData(dashboard);
       setMyTagsData(myTags);
     } catch (error: any) {
-      let message = '데이터를 불러오는데 실패했습니다.';
-
-      if (error.code === 'NETWORK_ERROR') {
-        message = '네트워크 연결을 확인해주세요.';
-      } else if (error.response?.status === 401) {
-        message = '로그인이 필요합니다.';
-      } else if (error.response?.status >= 500) {
-        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.response?.data?.detail) {
-        message = error.response.data.detail;
-      }
-
+      const message = handleApiError(error);
       setError(message);
     } finally {
       setIsLoading(false);

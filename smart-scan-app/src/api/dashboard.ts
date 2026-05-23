@@ -1,26 +1,5 @@
-import axios from 'axios';
-import { getAccessToken } from '../storage/tokenStorage';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-api.interceptors.request.use(
-  async (config) => {
-    const token = await getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+import apiClient from './client';
+import { formatAxiosError } from '../utils/errorHandler';
 
 export enum TagStatus {
   REGISTERED = 'REGISTERED',
@@ -118,89 +97,49 @@ export interface FamilyMemberListResponse {
 }
 
 export const getDashboard = async (): Promise<MonitoringDashboardResponse> => {
-  console.log('DEBUG: getDashboard 호출 시작 - URL: /api/monitoring/dashboard');
   try {
-    const response = await api.get('/api/monitoring/dashboard');
-    console.log('DEBUG: getDashboard 성공 응답:', response);
+    const response = await apiClient.get('/api/monitoring/dashboard');
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
-    console.log('DEBUG: getDashboard 에러:', error);
-    if (axios.isAxiosError(error)) {
-      throw {
-        code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
-        response: error.response,
-        message: error.message,
-      };
-    }
-    throw error;
+    throw formatAxiosError(error);
   }
 };
 
 export const getMyTags = async (): Promise<MyTagStatusListResponse> => {
-  console.log('DEBUG: getMyTags 호출 시작 - URL: /api/monitoring/my-tags');
   try {
-    const response = await api.get('/api/monitoring/my-tags');
-    console.log('DEBUG: getMyTags 성공 응답:', response);
+    const response = await apiClient.get('/api/monitoring/my-tags');
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
-    console.log('DEBUG: getMyTags 에러:', error);
-    if (axios.isAxiosError(error)) {
-      throw {
-        code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
-        response: error.response,
-        message: error.message,
-      };
-    }
-    throw error;
+    throw formatAxiosError(error);
   }
 };
 
 export const getItems = async (): Promise<ItemListResponse> => {
-  console.log('DEBUG: getItems 호출 시작 - URL: /api/items');
   try {
-    const response = await api.get('/api/items');
-    console.log('DEBUG: getItems 성공 응답:', response);
+    const response = await apiClient.get('/api/items');
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
-    console.log('DEBUG: getItems 에러:', error);
-    if (axios.isAxiosError(error)) {
-      throw {
-        code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
-        response: error.response,
-        message: error.message,
-      };
-    }
-    throw error;
+    throw formatAxiosError(error);
   }
 };
 
 export const getFamilyMembers = async (): Promise<FamilyMemberListResponse> => {
-  console.log('DEBUG: getFamilyMembers 호출 시작 - URL: /api/families/members');
   try {
-    const response = await api.get('/api/families/members');
-    console.log('DEBUG: getFamilyMembers 성공 응답:', response);
+    const response = await apiClient.get('/api/families/members');
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
-    console.log('DEBUG: getFamilyMembers 에러:', error);
-    if (axios.isAxiosError(error)) {
-      throw {
-        code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
-        response: error.response,
-        message: error.message,
-      };
-    }
-    throw error;
+    throw formatAxiosError(error);
   }
 };
