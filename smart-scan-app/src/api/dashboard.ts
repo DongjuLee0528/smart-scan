@@ -1,26 +1,5 @@
-import axios from 'axios';
-import { getAccessToken } from '../storage/tokenStorage';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-api.interceptors.request.use(
-  async (config) => {
-    const token = await getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+import apiClient from './client';
+import { formatAxiosError } from '../utils/errorHandler';
 
 export enum TagStatus {
   REGISTERED = 'REGISTERED',
@@ -119,76 +98,48 @@ export interface FamilyMemberListResponse {
 
 export const getDashboard = async (): Promise<MonitoringDashboardResponse> => {
   try {
-    const response = await api.get('/monitoring/dashboard');
+    const response = await apiClient.get('/api/monitoring/dashboard');
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw {
-        code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
-        response: error.response,
-        message: error.message,
-      };
-    }
-    throw error;
+    throw formatAxiosError(error);
   }
 };
 
 export const getMyTags = async (): Promise<MyTagStatusListResponse> => {
   try {
-    const response = await api.get('/monitoring/my-tags');
+    const response = await apiClient.get('/api/monitoring/my-tags');
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw {
-        code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
-        response: error.response,
-        message: error.message,
-      };
-    }
-    throw error;
+    throw formatAxiosError(error);
   }
 };
 
 export const getItems = async (): Promise<ItemListResponse> => {
   try {
-    const response = await api.get('/items');
+    const response = await apiClient.get('/api/items');
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw {
-        code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
-        response: error.response,
-        message: error.message,
-      };
-    }
-    throw error;
+    throw formatAxiosError(error);
   }
 };
 
 export const getFamilyMembers = async (): Promise<FamilyMemberListResponse> => {
   try {
-    const response = await api.get('/family-members');
+    const response = await apiClient.get('/api/families/members');
     if (!response.data || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw {
-        code: error.code === 'ECONNABORTED' ? 'NETWORK_ERROR' : error.code,
-        response: error.response,
-        message: error.message,
-      };
-    }
-    throw error;
+    throw formatAxiosError(error);
   }
 };

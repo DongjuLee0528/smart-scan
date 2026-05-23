@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { StackNavigationProp } from '@react-navigation/stack';
 import {
   getDashboard,
   getMyTags,
@@ -19,21 +20,12 @@ import {
   TagStatus,
 } from '../api/dashboard';
 import { formatDateTime } from '../utils/dateUtils';
+import { STATUS_COLORS } from '../constants/colors';
+import { AuthStackParamList } from '../types/navigation';
+import { TabBar } from '../components/TabBar';
+import { handleApiError } from '../utils/errorHandler';
 
-const STATUS_COLORS = {
-  success: {
-    text: '#10B981',
-    background: '#D1FAE5',
-  },
-  neutral: {
-    text: '#6B7280',
-    background: '#F3F4F6',
-  },
-  error: {
-    text: '#EF4444',
-    background: '#FEE2E2',
-  },
-};
+type DashboardScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Dashboard'>;
 
 interface StatCardProps {
   title: string;
@@ -88,31 +80,12 @@ const FamilyMember: React.FC<FamilyMemberProps> = ({ member }) => {
   );
 };
 
-const TabButton: React.FC<{
-  iconName: keyof typeof Ionicons.glyphMap;
-  label: string;
-  isActive?: boolean;
-}> = ({ iconName, label, isActive = false }) => {
-  const { colors, brandColor } = useTheme();
 
-  return (
-    <TouchableOpacity style={styles.tabButton}>
-      <Ionicons
-        name={iconName}
-        size={24}
-        color={isActive ? brandColor : colors.subtext}
-      />
-      <Text style={[
-        styles.tabLabel,
-        { color: isActive ? brandColor : colors.subtext }
-      ]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-};
+interface Props {
+  navigation: DashboardScreenNavigationProp;
+}
 
-export const DashboardScreen: React.FC = () => {
+export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, brandColor } = useTheme();
   const [dashboardData, setDashboardData] = useState<MonitoringDashboardResponse | null>(null);
   const [myTagsData, setMyTagsData] = useState<MyTagStatusListResponse | null>(null);
@@ -132,18 +105,7 @@ export const DashboardScreen: React.FC = () => {
       setDashboardData(dashboard);
       setMyTagsData(myTags);
     } catch (error: any) {
-      let message = '데이터를 불러오는데 실패했습니다.';
-
-      if (error.code === 'NETWORK_ERROR') {
-        message = '네트워크 연결을 확인해주세요.';
-      } else if (error.response?.status === 401) {
-        message = '로그인이 필요합니다.';
-      } else if (error.response?.status >= 500) {
-        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.response?.data?.detail) {
-        message = error.response.data.detail;
-      }
-
+      const message = handleApiError(error);
       setError(message);
     } finally {
       setIsLoading(false);
@@ -268,14 +230,6 @@ export const DashboardScreen: React.FC = () => {
       textAlign: 'center',
       paddingVertical: 20,
     },
-    bottomTabs: {
-      flexDirection: 'row',
-      backgroundColor: colors.card,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      paddingBottom: 20,
-      paddingTop: 10,
-    },
   });
 
   return (
@@ -372,13 +326,7 @@ export const DashboardScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      <View style={dynamicStyles.bottomTabs}>
-        <TabButton iconName="home-outline" label="홈" isActive={true} />
-        <TabButton iconName="hardware-chip-outline" label="디바이스" />
-        <TabButton iconName="cube-outline" label="물품" />
-        <TabButton iconName="people-outline" label="구성원" />
-        <TabButton iconName="notifications-outline" label="알림" />
-      </View>
+      <TabBar navigation={navigation} activeTab="Dashboard" />
     </SafeAreaView>
   );
 };
@@ -513,15 +461,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  tabLabel: {
-    fontSize: 12,
-    marginTop: 4,
   },
 });
 

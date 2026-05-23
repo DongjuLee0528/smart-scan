@@ -17,12 +17,8 @@ import { useTheme } from '../hooks/useTheme';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { login } from '../api/auth';
 import { validateEmail } from '../utils/validation';
-
-type AuthStackParamList = {
-  Login: undefined;
-  Signup: undefined;
-  Dashboard: undefined;
-};
+import { AuthStackParamList } from '../types/navigation';
+import { handleApiError } from '../utils/errorHandler';
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -56,19 +52,12 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setIsLoading(true);
     try {
       const response = await login(email.trim(), password);
-      console.log('로그인 성공:', response.name);
       navigation.navigate('Dashboard');
     } catch (error: any) {
-      let message = '로그인에 실패했습니다.';
+      let message = handleApiError(error);
 
-      if (error.code === 'NETWORK_ERROR' || !error.response) {
-        message = '네트워크 연결을 확인해주세요.';
-      } else if (error.response?.status === 401) {
+      if (error.response?.status === 401) {
         message = '이메일 또는 비밀번호가 올바르지 않습니다.';
-      } else if (error.response?.status >= 500) {
-        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.response?.data?.detail) {
-        message = error.response.data.detail;
       }
 
       Alert.alert('로그인 실패', message);
