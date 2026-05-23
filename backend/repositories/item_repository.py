@@ -107,6 +107,23 @@ class ItemRepository:
         ).order_by(Item.created_at.desc())
         return self.db.execute(stmt).all()
 
+    def get_active_items_with_label_by_user_device_ids(
+        self, user_device_ids: List[int]
+    ) -> List[Tuple[Item, Optional[int]]]:
+        """Find active items and label info for multiple user devices (family-wide query)."""
+        if not user_device_ids:
+            return []
+        stmt = select(Item, MasterTag.label_id).outerjoin(
+            MasterTag,
+            Item.tag_uid == MasterTag.tag_uid
+        ).where(
+            and_(
+                Item.user_device_id.in_(user_device_ids),
+                Item.is_active == True
+            )
+        ).order_by(Item.created_at.desc())
+        return self.db.execute(stmt).all()
+
     def get_active_items_by_kakao_user_id(self, kakao_user_id: str) -> List[Item]:
         """Find active item list of KakaoTalk user (includes pending).
 
