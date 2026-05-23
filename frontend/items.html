@@ -31,18 +31,20 @@
         </button>
       </div>
 
+      <div id="filterTabs" class="flex flex-wrap gap-1 mb-4"></div>
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-slate-100 text-slate-500 bg-slate-50/50">
               <th class="text-left font-medium px-6 py-3">이름</th>
+              <th class="text-left font-medium px-6 py-3">상태</th>
               <th class="text-left font-medium px-6 py-3">라벨</th>
               <th class="text-left font-medium px-6 py-3">등록일</th>
               <th class="text-right font-medium px-6 py-3">작업</th>
             </tr>
           </thead>
           <tbody id="items-tbody" class="divide-y divide-slate-100">
-            <tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">불러오는 중...</td></tr>
+            <tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">불러오는 중...</td></tr>
           </tbody>
         </table>
       </div>
@@ -83,6 +85,48 @@
     smartscanLayout.init({ active: 'items' });
     const esc = smartscanLayout.escapeHtml;
     const fmt = smartscanLayout.formatDateTime;
+
+    let allItems = [];
+    let activeFilter = 'all';
+
+    const STATUS_MAP = {
+      '집':    'bg-slate-100 text-slate-600',
+      '소지':  'bg-emerald-100 text-emerald-700',
+      '비소지':'bg-red-100 text-red-600',
+    };
+    function statusBadge(item) {
+      if (item.is_pending) return '<span class="px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700">대기</span>';
+      const s = item.tag_status || '집';
+      return `<span class="px-2 py-0.5 rounded text-xs font-medium ${STATUS_MAP[s] || STATUS_MAP['집']}">${s}</span>`;
+    }
+
+    function renderFilterTabs(items) {
+      const tabsEl = document.getElementById('filterTabs');
+      const seen = new Map();
+      items.forEach(it => {
+        if (it.owner_user_id != null && !seen.has(it.owner_user_id))
+          seen.set(it.owner_user_id, it.owner_name || `사용자 ${it.owner_user_id}`);
+      });
+      if (seen.size <= 1) { tabsEl.innerHTML = ''; return; }
+      const btnCls = (active) => active
+        ? 'px-3 py-1 rounded text-sm font-medium bg-slate-900 text-white'
+        : 'px-3 py-1 rounded text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50';
+      let html = `<button class="${btnCls(activeFilter==='all')}" data-filter="all">전체 (${items.length})</button>`;
+      seen.forEach((name, uid) => {
+        const cnt = items.filter(i => i.owner_user_id === uid).length;
+        html += `<button class="${btnCls(activeFilter===String(uid))}" data-filter="${uid}">${esc(name)} (${cnt})</button>`;
+      });
+      tabsEl.innerHTML = html;
+      tabsEl.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeFilter = btn.dataset.filter;
+          document.querySelectorAll('#items-tbody tr[data-owner-id]').forEach(row => {
+            row.style.display = (activeFilter === 'all' || row.dataset.ownerId === activeFilter) ? '' : 'none';
+          });
+          renderFilterTabs(allItems);
+        });
+      });
+    }
 
     const modal = document.getElementById('modal');
     const form = document.getElementById('item-form');
@@ -200,8 +244,10 @@
       try {
         const res = await smartscanApi.getItems();
         const items = (res.data && res.data.items) || [];
+        allItems = items;
+        renderFilterTabs(allItems);
         if (items.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-400">등록된 소지품이 없습니다. 우측 상단에서 추가하세요.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400">등록된 소지품이 없습니다. 우측 상단에서 추가하세요.</td></tr>`;
           return;
         }
         tbody.innerHTML = items.map((it) => {
@@ -215,11 +261,13 @@
             : `<button data-action="edit" class="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-md hover:bg-slate-50 mr-1">수정</button>
                <button data-action="delete" class="px-2.5 py-1 text-xs font-medium text-red-600 border border-red-200 rounded-md hover:bg-red-50">삭제</button>`;
           return `
-          <tr class="hover:bg-slate-50" data-id="${it.id}">
+          <tr class="hover:bg-slate-50" data-id="${it.id}" data-owner-id="${it.owner_user_id || ''}">
             <td class="px-6 py-4 font-semibold text-slate-800">
               ${esc(it.name)}
               ${isPending ? '<span class="ml-2 text-xs font-medium text-amber-600">· 챗봇 추가</span>' : ''}
+              ${it.owner_name ? `<p class="text-xs font-normal text-slate-400 mt-0.5">${esc(it.owner_name)}</p>` : ''}
             </td>
+            <td class="px-6 py-4">${statusBadge(it)}</td>
             <td class="px-6 py-4">${labelCell}</td>
             <td class="px-6 py-4 text-slate-500">${fmt(it.created_at)}</td>
             <td class="px-6 py-4 text-right">${actions}</td>
@@ -238,7 +286,7 @@
           });
         });
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">조회 실패: ${esc(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">조회 실패: ${esc(err.message)}</td></tr>`;
       }
     }
 

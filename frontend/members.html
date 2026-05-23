@@ -152,7 +152,7 @@
     }
 
     function roleBadge(role) {
-      if (role === 'admin' || role === 'ADMIN') return `<span class="px-2 py-0.5 rounded bg-[#034EA2]/10 text-[#034EA2] text-xs font-semibold">관리자</span>`;
+      if (role === 'owner' || role === 'admin' || role === 'ADMIN') return `<span class="px-2 py-0.5 rounded bg-[#034EA2]/10 text-[#034EA2] text-xs font-semibold">관리자</span>`;
       return `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-semibold">구성원</span>`;
     }
 
@@ -233,7 +233,7 @@
               <td class="px-6 py-4 text-slate-600">${m.age != null ? m.age : '-'}</td>
               <td class="px-6 py-4">${roleBadge(m.role)}</td>
               <td class="px-6 py-4 text-right">
-                <button data-action="delete" class="px-2.5 py-1 text-xs font-medium text-red-600 border border-red-200 rounded-md hover:bg-red-50">삭제</button>
+                ${isOwner && m.role !== 'owner' ? '<button data-action="delete" class="px-2.5 py-1 text-xs font-medium text-red-600 border border-red-200 rounded-md hover:bg-red-50">삭제</button>' : ''}
               </td>
             </tr>`;
         }).join('');

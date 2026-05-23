@@ -4,6 +4,7 @@ from backend.common.exceptions import BadRequestException, ForbiddenException, N
 from backend.common.validator import validate_positive_int
 from backend.repositories.item_repository import ItemRepository
 from backend.repositories.master_tag_repository import MasterTagRepository
+from backend.repositories.scan_log_repository import ScanLogRepository
 from backend.repositories.tag_repository import TagRepository
 from backend.repositories.user_device_repository import UserDeviceRepository
 from backend.schemas.item_schema import ItemListResponse, ItemResponse
@@ -29,31 +30,52 @@ class ItemService:
         self.master_tag_repository = MasterTagRepository(db)
         self.user_device_repository = UserDeviceRepository(db)
         self.tag_repository = TagRepository(db)
+        self.scan_log_repository = ScanLogRepository(db)
 
     def get_items(self, user_id: int) -> ItemListResponse:
         """
         Retrieve all items registered to family
 
-        Returns all active items registered to the user's family device with label information.
-        Items registered by other family members are also accessible to support family sharing.
+        Returns active items for all family members with tag status (집/소지/비소지)
+        and owner info so the frontend can render per-member tabs.
         """
         validate_positive_int(user_id, "user_id")
         user_device = self._get_family_registered_user_device(user_id)
 
-        items_with_labels = self.item_repository.get_active_items_with_label_by_user_device_id(user_device.id)
+        all_user_devices = self.user_device_repository.find_all_by_device_id(user_device.device_id)
+        user_map = {ud.user_id: (ud.user.name if ud.user else None) for ud in all_user_devices}
+        ud_id_to_user_id = {ud.id: ud.user_id for ud in all_user_devices}
+
+        items_with_labels = self.item_repository.get_active_items_with_label_by_user_device_ids(
+            [ud.id for ud in all_user_devices]
+        )
+
+        item_ids = [item.id for item, _ in items_with_labels]
+        latest_logs = self.scan_log_repository.find_latest_by_item_ids(item_ids)
 
         item_responses = []
         for item, label_id in items_with_labels:
-            item_response = ItemResponse(
+            owner_user_id = ud_id_to_user_id.get(item.user_device_id)
+            log = latest_logs.get(item.id)
+            if log is None:
+                tag_status = "집"
+            elif log.status == "FOUND":
+                tag_status = "소지"
+            else:
+                tag_status = "비소지"
+
+            item_responses.append(ItemResponse(
                 id=item.id,
                 name=item.name,
                 label_id=label_id,
                 created_at=item.created_at,
                 updated_at=item.updated_at,
                 is_active=item.is_active,
-                is_pending=item.is_pending
-            )
-            item_responses.append(item_response)
+                is_pending=item.is_pending,
+                owner_name=user_map.get(owner_user_id),
+                owner_user_id=owner_user_id,
+                tag_status=tag_status,
+            ))
 
         return ItemListResponse(
             items=item_responses,

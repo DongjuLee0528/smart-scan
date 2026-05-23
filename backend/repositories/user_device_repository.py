@@ -63,7 +63,8 @@ class UserDeviceRepository:
     def find_all_by_device_id(self, device_id: int) -> list[UserDevice]:
         """Find all users connected to device"""
         return self.db.query(UserDevice).options(
-            joinedload(UserDevice.device)
+            joinedload(UserDevice.device),
+            joinedload(UserDevice.user)
         ).filter(UserDevice.device_id == device_id).all()
 
     def find_all_by_user_ids(self, user_ids: list[int]) -> list[UserDevice]:

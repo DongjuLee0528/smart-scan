@@ -39,6 +39,9 @@ class ItemResponse(BaseModel):
     updated_at: datetime
     is_active: bool
     is_pending: bool = False
+    owner_name: Optional[str] = None
+    owner_user_id: Optional[int] = None
+    tag_status: Optional[str] = None  # "집" | "소지" | "비소지"
 
     model_config = ConfigDict(from_attributes=True)
 
