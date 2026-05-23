@@ -25,6 +25,7 @@ import {
   ItemListResponse,
 } from '../api/items';
 import { formatDateTime } from '../utils/dateUtils';
+import { handleApiError } from '../utils/errorHandler';
 
 type ItemScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Item'>;
 
@@ -49,16 +50,7 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
       const data = await getItems();
       setItemsData(data);
     } catch (error: any) {
-      let message = '데이터를 불러오는데 실패했습니다.';
-      if (error.code === 'NETWORK_ERROR') {
-        message = '네트워크 연결을 확인해주세요.';
-      } else if (error.response?.status === 401) {
-        message = '로그인이 필요합니다.';
-      } else if (error.response?.status >= 500) {
-        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.response?.data?.detail) {
-        message = error.response.data.detail;
-      }
+      const message = handleApiError(error);
       setError(message);
     } finally {
       setIsLoading(false);
@@ -81,14 +73,7 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('성공', '소지품이 추가되었습니다.');
       await fetchData();
     } catch (error: any) {
-      let message = '소지품 추가에 실패했습니다.';
-      if (error.code === 'NETWORK_ERROR') {
-        message = '네트워크 연결을 확인해주세요.';
-      } else if (error.response?.status >= 500) {
-        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.response?.data?.detail) {
-        message = error.response.data.detail;
-      }
+      const message = handleApiError(error);
       Alert.alert('추가 실패', message);
     } finally {
       setIsMutating(false);
@@ -118,14 +103,7 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('성공', '소지품이 수정되었습니다.');
       await fetchData();
     } catch (error: any) {
-      let message = '소지품 수정에 실패했습니다.';
-      if (error.code === 'NETWORK_ERROR') {
-        message = '네트워크 연결을 확인해주세요.';
-      } else if (error.response?.status >= 500) {
-        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.response?.data?.detail) {
-        message = error.response.data.detail;
-      }
+      const message = handleApiError(error);
       Alert.alert('수정 실패', message);
     } finally {
       setIsMutating(false);
@@ -154,14 +132,7 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
               Alert.alert('성공', '소지품이 삭제되었습니다.');
               await fetchData();
             } catch (error: any) {
-              let message = '소지품 삭제에 실패했습니다.';
-              if (error.code === 'NETWORK_ERROR') {
-                message = '네트워크 연결을 확인해주세요.';
-              } else if (error.response?.status >= 500) {
-                message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-              } else if (error.response?.data?.detail) {
-                message = error.response.data.detail;
-              }
+              const message = handleApiError(error);
               Alert.alert('삭제 실패', message);
             } finally {
               setIsMutating(false);

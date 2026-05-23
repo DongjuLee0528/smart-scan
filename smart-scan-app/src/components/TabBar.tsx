@@ -9,7 +9,7 @@ type NavigationProp = StackNavigationProp<AuthStackParamList>;
 
 interface TabBarProps {
   navigation: NavigationProp;
-  activeTab: 'Dashboard' | 'Device' | 'Item' | 'Member' | 'Notification';
+  activeTab: 'Dashboard' | 'Device' | 'Item';
 }
 
 interface TabButtonProps {
@@ -76,12 +76,12 @@ export const TabBar: React.FC<TabBarProps> = ({ navigation, activeTab }) => {
       <TabButton
         iconName="people-outline"
         label="구성원"
-        isActive={activeTab === 'Member'}
+        isActive={false}
       />
       <TabButton
         iconName="notifications-outline"
         label="알림"
-        isActive={activeTab === 'Notification'}
+        isActive={false}
       />
     </View>
   );

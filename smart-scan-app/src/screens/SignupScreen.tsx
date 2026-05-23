@@ -17,11 +17,8 @@ import { useTheme } from '../hooks/useTheme';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { signup } from '../api/auth';
 import { validateEmail, validatePassword, validatePhone, formatPhoneNumber } from '../utils/validation';
-
-type AuthStackParamList = {
-  Login: undefined;
-  Signup: undefined;
-};
+import { AuthStackParamList } from '../types/navigation';
+import { handleApiError } from '../utils/errorHandler';
 
 type SignupScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Signup'>;
 
@@ -90,16 +87,10 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
         { text: '확인', onPress: () => navigation.navigate('Login') }
       ]);
     } catch (error: any) {
-      let message = '회원가입에 실패했습니다.';
+      let message = handleApiError(error);
 
-      if (error.code === 'NETWORK_ERROR' || !error.response) {
-        message = '네트워크 연결을 확인해주세요.';
-      } else if (error.response?.status === 409) {
+      if (error.response?.status === 409) {
         message = '이미 사용 중인 이메일입니다.';
-      } else if (error.response?.status >= 500) {
-        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.response?.data?.detail) {
-        message = error.response.data.detail;
       }
 
       Alert.alert('회원가입 실패', message);
