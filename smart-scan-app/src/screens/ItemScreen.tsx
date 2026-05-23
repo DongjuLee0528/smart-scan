@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,16 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { STATUS_COLORS } from '../constants/colors';
 import { AuthStackParamList } from '../types/navigation';
 import { TabBar } from '../components/TabBar';
+import { InputModal } from '../components/InputModal';
+import {
+  getItems,
+  createItem,
+  updateItem,
+  deleteItem,
+  ItemResponse,
+  ItemListResponse,
+} from '../api/items';
+import { formatDateTime } from '../utils/dateUtils';
 
 type ItemScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Item'>;
 
@@ -21,35 +32,193 @@ interface Props {
   navigation: ItemScreenNavigationProp;
 }
 
-interface ItemData {
-  id: number;
-  name: string;
-  label?: string;
-  status: 'found' | 'lost';
-  icon: keyof typeof Ionicons.glyphMap;
-}
-
-
 export const ItemScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, brandColor } = useTheme();
-  const [items, setItems] = useState<ItemData[]>([]);
+  const [itemsData, setItemsData] = useState<ItemListResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isMutating, setIsMutating] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<ItemResponse | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await getItems();
+      setItemsData(data);
+    } catch (error: any) {
+      let message = '데이터를 불러오는데 실패했습니다.';
+      if (error.code === 'NETWORK_ERROR') {
+        message = '네트워크 연결을 확인해주세요.';
+      } else if (error.response?.status === 401) {
+        message = '로그인이 필요합니다.';
+      } else if (error.response?.status >= 500) {
+        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error.response?.data?.detail) {
+        message = error.response.data.detail;
+      }
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddItem = () => {
-    Alert.alert('준비 중', '소지품 추가 기능을 준비 중입니다.');
+    setShowAddModal(true);
   };
 
-  const handleEditItem = (id: number) => {
-    Alert.alert('준비 중', '소지품 수정 기능을 준비 중입니다.');
+  const handleAddConfirm = async (name: string) => {
+    if (!name?.trim()) {
+      Alert.alert('오류', '소지품 이름을 입력해주세요.');
+      return;
+    }
+    try {
+      setIsMutating(true);
+      setShowAddModal(false);
+      await createItem(name.trim());
+      Alert.alert('성공', '소지품이 추가되었습니다.');
+      await fetchData();
+    } catch (error: any) {
+      let message = '소지품 추가에 실패했습니다.';
+      if (error.code === 'NETWORK_ERROR') {
+        message = '네트워크 연결을 확인해주세요.';
+      } else if (error.response?.status >= 500) {
+        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error.response?.data?.detail) {
+        message = error.response.data.detail;
+      }
+      Alert.alert('추가 실패', message);
+    } finally {
+      setIsMutating(false);
+    }
   };
 
-  const handleDeleteItem = (id: number) => {
-    Alert.alert('준비 중', '소지품 삭제 기능을 준비 중입니다.');
+  const handleAddCancel = () => {
+    setShowAddModal(false);
   };
+
+  const handleEditItem = (item: ItemResponse) => {
+    setEditingItem(item);
+    setShowEditModal(true);
+  };
+
+  const handleEditConfirm = async (name: string) => {
+    if (!name?.trim()) {
+      Alert.alert('오류', '소지품 이름을 입력해주세요.');
+      return;
+    }
+    if (!editingItem) return;
+
+    try {
+      setIsMutating(true);
+      setShowEditModal(false);
+      await updateItem(editingItem.id, name.trim());
+      Alert.alert('성공', '소지품이 수정되었습니다.');
+      await fetchData();
+    } catch (error: any) {
+      let message = '소지품 수정에 실패했습니다.';
+      if (error.code === 'NETWORK_ERROR') {
+        message = '네트워크 연결을 확인해주세요.';
+      } else if (error.response?.status >= 500) {
+        message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error.response?.data?.detail) {
+        message = error.response.data.detail;
+      }
+      Alert.alert('수정 실패', message);
+    } finally {
+      setIsMutating(false);
+      setEditingItem(null);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setShowEditModal(false);
+    setEditingItem(null);
+  };
+
+  const handleDeleteItem = (item: ItemResponse) => {
+    Alert.alert(
+      '소지품 삭제',
+      `"${item.name}"을(를) 삭제하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsMutating(true);
+              await deleteItem(item.id);
+              Alert.alert('성공', '소지품이 삭제되었습니다.');
+              await fetchData();
+            } catch (error: any) {
+              let message = '소지품 삭제에 실패했습니다.';
+              if (error.code === 'NETWORK_ERROR') {
+                message = '네트워크 연결을 확인해주세요.';
+              } else if (error.response?.status >= 500) {
+                message = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+              } else if (error.response?.data?.detail) {
+                message = error.response.data.detail;
+              }
+              Alert.alert('삭제 실패', message);
+            } finally {
+              setIsMutating(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRetry = () => {
+    fetchData();
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const dynamicStyles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    errorContent: {
+      alignItems: 'center',
+    },
+    errorText: {
+      marginTop: 16,
+      marginBottom: 24,
+      fontSize: 16,
+      textAlign: 'center',
+    },
+    retryButton: {
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    retryButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: 'bold',
     },
     header: {
       flexDirection: 'row',
@@ -197,6 +366,32 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
     },
   });
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[dynamicStyles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={brandColor} />
+        <Text style={[dynamicStyles.loadingText, { color: colors.text }]}>데이터를 불러오는 중...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[dynamicStyles.errorContainer, { backgroundColor: colors.background }]}>
+        <View style={dynamicStyles.errorContent}>
+          <Ionicons name="alert-circle-outline" size={48} color={STATUS_COLORS.error.text} />
+          <Text style={[dynamicStyles.errorText, { color: colors.text }]}>{error}</Text>
+          <TouchableOpacity
+            style={[dynamicStyles.retryButton, { backgroundColor: brandColor }]}
+            onPress={handleRetry}
+          >
+            <Text style={dynamicStyles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={dynamicStyles.container}>
       <View style={dynamicStyles.header}>
@@ -208,8 +403,9 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={dynamicStyles.headerTitle}>소지품 관리</Text>
         <TouchableOpacity
-          style={dynamicStyles.addButton}
+          style={[dynamicStyles.addButton, { opacity: isMutating ? 0.7 : 1 }]}
           onPress={handleAddItem}
+          disabled={isMutating}
         >
           <Ionicons name="add" size={16} color="#FFFFFF" />
           <Text style={dynamicStyles.addButtonText}>소지품 추가</Text>
@@ -226,27 +422,32 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={dynamicStyles.cardTitle}>소지품 목록</Text>
           <Text style={dynamicStyles.cardSubtitle}>RFID 태그가 부착된 소지품들입니다.</Text>
 
-          {items.length > 0 ? (
+          {itemsData && itemsData.items.length > 0 ? (
             <View style={dynamicStyles.itemList}>
-              {items.map((item) => (
+              {itemsData.items.map((item) => (
                 <View key={item.id} style={dynamicStyles.itemRow}>
                   <View style={dynamicStyles.itemIcon}>
                     <Ionicons
-                      name={item.icon}
+                      name={item.is_pending ? "clock-outline" : "cube"}
                       size={20}
-                      color={STATUS_COLORS.neutral.text}
+                      color={item.is_pending ? STATUS_COLORS.neutral.text : STATUS_COLORS.success.text}
                     />
                   </View>
                   <View style={dynamicStyles.itemInfo}>
                     <Text style={dynamicStyles.itemName}>{item.name}</Text>
-                    {item.label && (
-                      <Text style={dynamicStyles.itemLabel}>라벨: {item.label}</Text>
+                    <Text style={dynamicStyles.itemLabel}>
+                      생성일: {formatDateTime(item.created_at)}
+                    </Text>
+                    {item.label_id && (
+                      <Text style={dynamicStyles.itemLabel}>라벨 ID: {item.label_id}</Text>
                     )}
                   </View>
                   <View style={[
                     dynamicStyles.itemStatus,
                     {
-                      backgroundColor: item.status === 'found'
+                      backgroundColor: item.is_pending
+                        ? STATUS_COLORS.neutral.background
+                        : item.is_active
                         ? STATUS_COLORS.success.background
                         : STATUS_COLORS.error.background
                     }
@@ -254,24 +455,28 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
                     <Text style={[
                       dynamicStyles.itemStatusText,
                       {
-                        color: item.status === 'found'
+                        color: item.is_pending
+                          ? STATUS_COLORS.neutral.text
+                          : item.is_active
                           ? STATUS_COLORS.success.text
                           : STATUS_COLORS.error.text
                       }
                     ]}>
-                      {item.status === 'found' ? '정상' : '누락'}
+                      {item.is_pending ? '대기중' : item.is_active ? '활성' : '비활성'}
                     </Text>
                   </View>
                   <View style={dynamicStyles.itemActions}>
                     <TouchableOpacity
-                      style={dynamicStyles.actionButton}
-                      onPress={() => handleEditItem(item.id)}
+                      style={[dynamicStyles.actionButton, { opacity: isMutating ? 0.7 : 1 }]}
+                      onPress={() => handleEditItem(item)}
+                      disabled={isMutating}
                     >
                       <Ionicons name="pencil" size={18} color={colors.subtext} />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={dynamicStyles.actionButton}
-                      onPress={() => handleDeleteItem(item.id)}
+                      style={[dynamicStyles.actionButton, { opacity: isMutating ? 0.7 : 1 }]}
+                      onPress={() => handleDeleteItem(item)}
+                      disabled={isMutating}
                     >
                       <Ionicons name="trash" size={18} color={STATUS_COLORS.error.text} />
                     </TouchableOpacity>
@@ -294,7 +499,23 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       <TabBar navigation={navigation} activeTab="Item" />
+
+      <InputModal
+        visible={showAddModal}
+        title="소지품 추가"
+        placeholder="소지품 이름을 입력하세요"
+        onConfirm={handleAddConfirm}
+        onCancel={handleAddCancel}
+      />
+
+      <InputModal
+        visible={showEditModal}
+        title="소지품 수정"
+        placeholder="새로운 이름을 입력하세요"
+        defaultValue={editingItem?.name || ''}
+        onConfirm={handleEditConfirm}
+        onCancel={handleEditCancel}
+      />
     </SafeAreaView>
   );
 };
-
