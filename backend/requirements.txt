@@ -21,5 +21,8 @@ cryptography==43.0.1
 slowapi>=0.1.9
 PyJWT>=2.8.0
 
+# 푸시 알림
+firebase-admin>=6.5.0
+
 # 테스트
 pytest>=8.0.0

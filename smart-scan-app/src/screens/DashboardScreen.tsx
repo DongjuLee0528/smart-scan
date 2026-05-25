@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +26,13 @@ import { STATUS_COLORS } from '../constants/colors';
 import { AuthStackParamList } from '../types/navigation';
 import { TabBar } from '../components/TabBar';
 import { handleApiError } from '../utils/errorHandler';
+import {
+  registerForPushNotificationsAsync,
+  addNotificationReceivedListener,
+  addNotificationResponseReceivedListener
+} from '../utils/pushNotifications';
+import { registerFcmToken } from '../api/fcm';
+import * as Notifications from 'expo-notifications';
 
 type DashboardScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Dashboard'>;
 
@@ -92,7 +101,7 @@ export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -110,47 +119,58 @@ export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
   }, []);
 
-  const handleRetry = () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadData = async () => {
+      if (!cancelled) {
+        await fetchData();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchData]);
+
+  const handleRetry = useCallback(() => {
     fetchData();
-  };
+  }, [fetchData]);
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={brandColor} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>데이터를 불러오는 중...</Text>
-      </SafeAreaView>
-    );
-  }
+  const setupPushNotifications = useCallback(async () => {
+    try {
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        const deviceType = Platform.OS === 'ios' ? 'ios' : 'android';
+        await registerFcmToken(token, deviceType);
+      }
+    } catch (error: any) {
+      console.warn('Push notification setup failed:', error);
+    }
+  }, []);
 
-  if (error) {
-    return (
-      <SafeAreaView style={[styles.errorContainer, { backgroundColor: colors.background }]}>
-        <View style={styles.errorContent}>
-          <Ionicons name="alert-circle-outline" size={48} color={STATUS_COLORS.error.text} />
-          <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
-          <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: brandColor }]}
-            onPress={handleRetry}
-          >
-            <Text style={styles.retryButtonText}>다시 시도</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  useEffect(() => {
+    setupPushNotifications();
 
-  if (!dashboardData) {
-    return null;
-  }
+    const notificationListener = addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+    });
 
-  const dynamicStyles = StyleSheet.create({
+    const responseListener = addNotificationResponseReceivedListener(response => {
+      console.log('Notification response:', response);
+    });
+
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, [setupPushNotifications]);
+
+  const dynamicStyles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
@@ -230,7 +250,37 @@ export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
       textAlign: 'center',
       paddingVertical: 20,
     },
-  });
+  }), [colors, brandColor]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={brandColor} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>데이터를 불러오는 중...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.errorContent}>
+          <Ionicons name="alert-circle-outline" size={48} color={STATUS_COLORS.error.text} />
+          <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: brandColor }]}
+            onPress={handleRetry}
+          >
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!dashboardData) {
+    return null;
+  }
 
   return (
     <SafeAreaView style={dynamicStyles.container}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -41,7 +41,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -54,10 +54,10 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleRegister = async () => {
-    if (!serial.trim()) {
+  const handleRegister = useCallback(async () => {
+    if (!serial || serial.trim() === '') {
       Alert.alert('오류', '시리얼 번호를 입력해주세요.');
       return;
     }
@@ -69,21 +69,14 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
       setSerial('');
       await fetchData();
     } catch (error: any) {
-      let message = handleApiError(error);
-
-      if (error.response?.status === 400) {
-        message = '잘못된 시리얼 번호입니다.';
-      } else if (error.response?.status === 409) {
-        message = '이미 등록된 기기입니다.';
-      }
-
+      const message = handleApiError(error);
       Alert.alert('등록 실패', message);
     } finally {
       setIsRegistering(false);
     }
-  };
+  }, [serial, fetchData]);
 
-  const handleUnlink = async () => {
+  const handleUnlink = useCallback(async () => {
     Alert.alert(
       '기기 연결 해제',
       '기기 연결을 해제하면 관련 태그/소지품 정보도 영향을 받을 수 있습니다. 계속하시겠습니까?',
@@ -108,15 +101,27 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
         },
       ]
     );
-  };
+  }, [fetchData]);
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     fetchData();
-  };
+  }, [fetchData]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    let cancelled = false;
+
+    const loadData = async () => {
+      if (!cancelled) {
+        await fetchData();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchData]);
 
   if (isLoading) {
     return (
@@ -144,7 +149,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  const dynamicStyles = StyleSheet.create({
+  const dynamicStyles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
@@ -284,7 +289,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
       fontSize: 16,
       fontWeight: '600',
     },
-  });
+  }), [colors, brandColor]);
 
   return (
     <SafeAreaView style={dynamicStyles.container}>
@@ -359,10 +364,10 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity
               style={[
                 dynamicStyles.registerButton,
-                { opacity: isRegistering || !serial.trim() ? 0.7 : 1 }
+                { opacity: isRegistering || !serial || serial.trim() === '' ? 0.7 : 1 }
               ]}
               onPress={handleRegister}
-              disabled={isRegistering || !serial.trim()}
+              disabled={isRegistering || !serial || serial.trim() === ''}
             >
               {isRegistering ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />

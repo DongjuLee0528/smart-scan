@@ -40,3 +40,4 @@ class User(Base):
     owned_tags = relationship("Tag", back_populates="owner")
     family_members = relationship("FamilyMember", back_populates="user")
     user_devices = relationship("UserDevice", back_populates="user")
+    fcm_tokens = relationship("UserFcmToken", back_populates="user", cascade="all, delete-orphan")

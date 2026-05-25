@@ -52,6 +52,7 @@ from backend.schemas.notification_schema import (
     NotificationType,
 )
 from backend.services.email_service import EmailService
+from backend.services.fcm_service import FcmService
 from backend.services.monitoring_service import MonitoringService
 
 
@@ -61,6 +62,7 @@ class NotificationService(ServiceBase):
         self.notification_repository = NotificationRepository(db)
         self.monitoring_service = MonitoringService(db)
         self.email_service = EmailService()
+        self.fcm_service = FcmService(db)
 
     def send_manual_notification(
         self,
@@ -208,18 +210,32 @@ class NotificationService(ServiceBase):
 
     def _dispatch_notification(self, notification) -> None:
         channel = notification.channel
+        sender = self.user_repository.find_by_id(notification.sender_user_id)
+        recipient = self.user_repository.find_by_id(notification.recipient_user_id)
+        sender_name = sender.name if sender else "SmartScan"
+
         if channel == NotificationChannel.EMAIL.value:
             try:
-                sender = self.user_repository.find_by_id(notification.sender_user_id)
-                recipient = self.user_repository.find_by_id(notification.recipient_user_id)
                 if recipient and recipient.email:
                     self.email_service.send_alert_email(
                         to_email=recipient.email,
-                        sender_name=sender.name if sender else "SmartScan",
+                        sender_name=sender_name,
                         title=notification.title,
                         message=notification.message,
                     )
             except Exception as e:
                 logger.warning("Failed to send email notification notification_id=%s: %s", notification.id, e)
-        else:
-            logger.info("_dispatch_notification: channel=%s not yet implemented (notification_id=%s)", channel, notification.id)
+
+        try:
+            self.fcm_service.send_push_to_user(
+                user_id=notification.recipient_user_id,
+                title=notification.title,
+                body=notification.message,
+                data={
+                    "notification_id": str(notification.id),
+                    "sender_name": sender_name,
+                    "type": notification.type
+                }
+            )
+        except Exception as e:
+            logger.warning("Failed to send FCM notification notification_id=%s: %s", notification.id, e)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -43,7 +43,7 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ItemResponse | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -55,13 +55,13 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleAddItem = () => {
+  const handleAddItem = useCallback(() => {
     setShowAddModal(true);
-  };
+  }, []);
 
-  const handleAddConfirm = async (name: string) => {
+  const handleAddConfirm = useCallback(async (name: string) => {
     if (!name?.trim()) {
       Alert.alert('오류', '소지품 이름을 입력해주세요.');
       return;
@@ -78,23 +78,26 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setIsMutating(false);
     }
-  };
+  }, [fetchData]);
 
-  const handleAddCancel = () => {
+  const handleAddCancel = useCallback(() => {
     setShowAddModal(false);
-  };
+  }, []);
 
-  const handleEditItem = (item: ItemResponse) => {
+  const handleEditItem = useCallback((item: ItemResponse) => {
     setEditingItem(item);
     setShowEditModal(true);
-  };
+  }, []);
 
-  const handleEditConfirm = async (name: string) => {
+  const handleEditConfirm = useCallback(async (name: string) => {
     if (!name?.trim()) {
       Alert.alert('오류', '소지품 이름을 입력해주세요.');
       return;
     }
-    if (!editingItem) return;
+    if (!editingItem) {
+      Alert.alert('오류', '편집할 소지품이 선택되지 않았습니다.');
+      return;
+    }
 
     try {
       setIsMutating(true);
@@ -109,14 +112,14 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
       setIsMutating(false);
       setEditingItem(null);
     }
-  };
+  }, [editingItem, fetchData]);
 
-  const handleEditCancel = () => {
+  const handleEditCancel = useCallback(() => {
     setShowEditModal(false);
     setEditingItem(null);
-  };
+  }, []);
 
-  const handleDeleteItem = (item: ItemResponse) => {
+  const handleDeleteItem = useCallback((item: ItemResponse) => {
     Alert.alert(
       '소지품 삭제',
       `"${item.name}"을(를) 삭제하시겠습니까?`,
@@ -141,17 +144,29 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
         },
       ]
     );
-  };
+  }, [fetchData]);
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     fetchData();
-  };
+  }, [fetchData]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    let cancelled = false;
 
-  const dynamicStyles = StyleSheet.create({
+    const loadData = async () => {
+      if (!cancelled) {
+        await fetchData();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchData]);
+
+  const dynamicStyles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
@@ -335,7 +350,7 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
       textAlign: 'center',
       lineHeight: 20,
     },
-  });
+  }), [colors, brandColor]);
 
   if (isLoading) {
     return (
@@ -479,14 +494,16 @@ export const ItemScreen: React.FC<Props> = ({ navigation }) => {
         onCancel={handleAddCancel}
       />
 
-      <InputModal
-        visible={showEditModal}
-        title="소지품 수정"
-        placeholder="새로운 이름을 입력하세요"
-        defaultValue={editingItem?.name || ''}
-        onConfirm={handleEditConfirm}
-        onCancel={handleEditCancel}
-      />
+      {showEditModal && editingItem && (
+        <InputModal
+          visible={showEditModal}
+          title="소지품 수정"
+          placeholder="새로운 이름을 입력하세요"
+          defaultValue={editingItem.name}
+          onConfirm={handleEditConfirm}
+          onCancel={handleEditCancel}
+        />
+      )}
     </SafeAreaView>
   );
 };
