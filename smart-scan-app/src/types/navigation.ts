@@ -5,4 +5,5 @@ export type AuthStackParamList = {
   Device: undefined;
   Item: undefined;
   Member: undefined;
+  Notification: undefined;
 };

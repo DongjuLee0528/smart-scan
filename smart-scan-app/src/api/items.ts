@@ -29,7 +29,7 @@ export interface ItemUpdateRequest {
 export const getItems = async (): Promise<ItemListResponse> => {
   try {
     const response = await apiClient.get('/api/items');
-    if (!response.data || !response.data.data) {
+    if (!response.data || !response.data.success || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
@@ -46,7 +46,7 @@ export const createItem = async (name: string, labelId?: number): Promise<ItemRe
     }
 
     const response = await apiClient.post('/api/items', requestData);
-    if (!response.data || !response.data.data) {
+    if (!response.data || !response.data.success || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
@@ -62,7 +62,7 @@ export const updateItem = async (itemId: number, name?: string, labelId?: number
     if (labelId !== undefined) updateData.label_id = labelId;
 
     const response = await apiClient.patch(`/api/items/${itemId}`, updateData);
-    if (!response.data || !response.data.data) {
+    if (!response.data || !response.data.success || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
@@ -74,7 +74,7 @@ export const updateItem = async (itemId: number, name?: string, labelId?: number
 export const deleteItem = async (itemId: number): Promise<boolean> => {
   try {
     const response = await apiClient.delete(`/api/items/${itemId}`);
-    if (!response.data) {
+    if (!response.data || !response.data.success) {
       throw new Error('Invalid response format');
     }
     return true;

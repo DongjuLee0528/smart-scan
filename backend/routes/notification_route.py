@@ -38,6 +38,7 @@ from backend.common.route_decorators import handle_service_errors, validate_posi
 from backend.common.rate_limiter import limiter, api_rate_limit
 from backend.schemas.notification_schema import SendNotificationRequest
 from backend.services.notification_service import NotificationService
+from backend.services.fcm_service import FcmService
 
 
 router = APIRouter(tags=["notifications"])
@@ -45,6 +46,10 @@ router = APIRouter(tags=["notifications"])
 
 def get_notification_service(db: Session = Depends(get_db)) -> NotificationService:
     return NotificationService(db)
+
+
+def get_fcm_service(db: Session = Depends(get_db)) -> FcmService:
+    return FcmService(db)
 
 
 @router.post("/send/{user_id}", response_model=dict)
@@ -95,3 +100,34 @@ def mark_notification_as_read(
         notification_id=notification_id
     )
     return success_response("Notification marked as read successfully", result.model_dump())
+
+
+@router.post("/fcm-token", response_model=dict)
+@handle_service_errors
+def register_fcm_token(
+    token: str,
+    device_type: str = "android",
+    current_user=Depends(get_current_user),
+    fcm_service: FcmService = Depends(get_fcm_service)
+):
+    validate_required_string("fcm_token", token)
+
+    result = fcm_service.register_token(current_user.id, token, device_type)
+    return success_response("FCM token registered successfully", {
+        "id": result.id,
+        "user_id": result.user_id,
+        "device_type": result.device_type,
+        "is_active": result.is_active,
+        "created_at": result.created_at.isoformat(),
+        "updated_at": result.updated_at.isoformat()
+    })
+
+
+@router.delete("/fcm-token", response_model=dict)
+@handle_service_errors
+def delete_fcm_tokens(
+    current_user=Depends(get_current_user),
+    fcm_service: FcmService = Depends(get_fcm_service)
+):
+    result = fcm_service.delete_user_tokens(current_user.id)
+    return success_response("FCM tokens deleted successfully", {"deleted": result})
