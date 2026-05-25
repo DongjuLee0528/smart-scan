@@ -99,7 +99,7 @@ export interface FamilyMemberListResponse {
 export const getDashboard = async (): Promise<MonitoringDashboardResponse> => {
   try {
     const response = await apiClient.get('/api/monitoring/dashboard');
-    if (!response.data || !response.data.data) {
+    if (!response.data || !response.data.success || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
@@ -111,7 +111,7 @@ export const getDashboard = async (): Promise<MonitoringDashboardResponse> => {
 export const getMyTags = async (): Promise<MyTagStatusListResponse> => {
   try {
     const response = await apiClient.get('/api/monitoring/my-tags');
-    if (!response.data || !response.data.data) {
+    if (!response.data || !response.data.success || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
@@ -123,7 +123,7 @@ export const getMyTags = async (): Promise<MyTagStatusListResponse> => {
 export const getItems = async (): Promise<ItemListResponse> => {
   try {
     const response = await apiClient.get('/api/items');
-    if (!response.data || !response.data.data) {
+    if (!response.data || !response.data.success || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
@@ -135,7 +135,7 @@ export const getItems = async (): Promise<ItemListResponse> => {
 export const getFamilyMembers = async (): Promise<FamilyMemberListResponse> => {
   try {
     const response = await apiClient.get('/api/families/members');
-    if (!response.data || !response.data.data) {
+    if (!response.data || !response.data.success || !response.data.data) {
       throw new Error('Invalid response format');
     }
     return response.data.data;
