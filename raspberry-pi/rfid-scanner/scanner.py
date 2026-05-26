@@ -115,9 +115,7 @@ def main():
             continue
 
         if not tags:
-            logger.debug("태그 없음 — 대기 중")
-            time.sleep(SCAN_INTERVAL_SEC)
-            continue
+            continue  # sleep 없이 즉시 재시도 (collect_tags가 window_sec 동안 충분히 대기)
 
         # ── SCANNING: 태그 감지 → 1회 전송 ──────────────────────────
         logger.info("스캔 이벤트 시작: %s", tags)
