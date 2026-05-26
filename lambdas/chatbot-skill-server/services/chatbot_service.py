@@ -55,7 +55,7 @@ def handle_chatbot(body: dict) -> dict:
 
     print(f"[DEBUG] kakao_user_id={kakao_user_id}")
     if not kakao_user_id:
-        return make_res(False, "Cannot verify Kakao user ID.", True)
+        return make_res(False, "카카오 사용자 ID를 확인할 수 없습니다.", True)
 
     link = get_user_by_kakao_id(kakao_user_id)
     if not link:
