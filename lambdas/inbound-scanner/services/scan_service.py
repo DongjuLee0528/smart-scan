@@ -23,7 +23,8 @@ from datetime import datetime, timezone
 from common.db import get_client
 from repositories.item_repository import (
     get_device_by_serial,
-    check_missing_items_rpc
+    check_missing_items_rpc,
+    get_items_by_tags
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,14 @@ logger.setLevel(logging.INFO)
 lambda_client = boto3.client('lambda', region_name='ap-northeast-2')
 
 _last_notified: dict[int, float] = {}  # member_id → last notified timestamp
+_last_outbound_tags: dict[int, set] = {}  # device_id → 외출 시 스캔된 tag_uid 집합
 NOTIFY_COOLDOWN_SEC = 20  # 20 seconds per member (시연용)
+
+
+def _is_return_home(device_id: int, scanned_tags: list) -> bool:
+    """이전 외출 기록과 현재 스캔 태그가 겹치면 귀가 판정"""
+    last_tags = _last_outbound_tags.get(device_id, set())
+    return bool(last_tags and set(scanned_tags) & last_tags)
 
 
 def process_scan(event):
@@ -71,14 +79,57 @@ def process_scan(event):
 
     device_id = device['id']
 
-    # Record scan logs (failure does not affect scan result response)
-    _insert_scan_logs(device_id, scanned_tags)
+    # ── 귀가 vs 외출 방향 판정 ──
+    if _is_return_home(device_id, scanned_tags):
+        return _handle_return_home(device_id, scanned_tags)
+    else:
+        return _handle_outbound(device_id, scanned_tags)
 
-    # Check missing items via RPC
+
+def _handle_return_home(device_id: int, scanned_tags: list) -> dict:
+    """귀가 처리: RETURNED 로그 삽입 + 밖에 두고 온 물건 알림"""
+    outbound_tags = _last_outbound_tags.pop(device_id)
+    left_outside_tags = outbound_tags - set(scanned_tags)
+
+    _insert_scan_logs(device_id, scanned_tags, status='RETURNED')
+
+    logger.info(
+        "Return home detected — device_id: %s, returned: %d tags, left outside: %d tags",
+        device_id, len(scanned_tags), len(left_outside_tags)
+    )
+
+    if left_outside_tags:
+        items = get_items_by_tags(list(left_outside_tags))
+        grouped = _group_left_items_by_member(items)
+        if grouped:
+            try:
+                lambda_client.invoke(
+                    FunctionName='smartscan-outbound',
+                    InvocationType='Event',
+                    Payload=json.dumps({
+                        'alert_type': 'return_home',
+                        'device_id': device_id,
+                        'left_items_by_member': grouped
+                    })
+                )
+            except Exception as e:
+                logger.error("Outbound Lambda invocation failed (귀가) — device_id: %s, error: %s", device_id, str(e))
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"message": "Return home processed."})
+    }
+
+
+def _handle_outbound(device_id: int, scanned_tags: list) -> dict:
+    """외출 처리: 태그 기록 + FOUND 로그 삽입 + 미소지 알림"""
+    _last_outbound_tags[device_id] = set(scanned_tags)
+
+    _insert_scan_logs(device_id, scanned_tags, status='FOUND')
+
     missing = check_missing_items_rpc(device_id, scanned_tags)
 
     if missing:
-        # Group by member
         grouped = _group_by_member(missing)
         missing_names = [item['missing_item'] for item in missing]
         logger.info(
@@ -86,7 +137,6 @@ def process_scan(event):
             device_id, len(missing_names), len(grouped)
         )
 
-        # 멤버별 독립 쿨다운 — 다른 멤버가 60초 이내 순차 통과해도 각자 알림 수신
         now = time.time()
         to_notify = [
             m for m in grouped
@@ -123,7 +173,7 @@ def process_scan(event):
     }
 
 
-def _insert_scan_logs(device_id: int, scanned_tags: list):
+def _insert_scan_logs(device_id: int, scanned_tags: list, status: str = 'FOUND'):
     """Record logs for each scanned tag (actual scan_logs schema: user_device_id, item_id, status)"""
     if not scanned_tags:
         return
@@ -142,7 +192,7 @@ def _insert_scan_logs(device_id: int, scanned_tags: list):
             rows.append({
                 'user_device_id': item['user_device_id'],
                 'item_id': item['id'],
-                'status': 'FOUND',
+                'status': status,
                 'scanned_at': now
             })
 
@@ -150,6 +200,24 @@ def _insert_scan_logs(device_id: int, scanned_tags: list):
             client.table('scan_logs').insert(rows).execute()
     except Exception as e:
         logger.error("scan_logs insert failed — device_id: %s, error: %s", device_id, str(e))
+
+
+def _group_left_items_by_member(items: list) -> list:
+    """밖에 두고 온 아이템을 멤버별로 그룹핑 (귀가 알림용)"""
+    members = {}
+    for item in items:
+        mid = item.get('member_id')
+        if mid is None:
+            continue
+        if mid not in members:
+            members[mid] = {
+                'member_id': mid,
+                'member_name': item.get('member_name', ''),
+                'member_email': item.get('member_email', ''),
+                'left_items': []
+            }
+        members[mid]['left_items'].append(item['item_name'])
+    return [m for m in members.values() if m.get('member_email') and m['left_items']]
 
 
 def _group_by_member(missing_items: list) -> list:
