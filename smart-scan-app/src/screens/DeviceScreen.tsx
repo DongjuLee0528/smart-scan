@@ -107,48 +107,6 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
     fetchData();
   }, [fetchData]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadData = async () => {
-      if (!cancelled) {
-        await fetchData();
-      }
-    };
-
-    loadData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchData]);
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={brandColor} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>데이터를 불러오는 중...</Text>
-      </SafeAreaView>
-    );
-  }
-
-  if (error) {
-    return (
-      <SafeAreaView style={[styles.errorContainer, { backgroundColor: colors.background }]}>
-        <View style={styles.errorContent}>
-          <Ionicons name="alert-circle-outline" size={48} color={STATUS_COLORS.error.text} />
-          <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
-          <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: brandColor }]}
-            onPress={handleRetry}
-          >
-            <Text style={styles.retryButtonText}>다시 시도</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const dynamicStyles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
@@ -290,6 +248,48 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
       fontWeight: '600',
     },
   }), [colors, brandColor]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadData = async () => {
+      if (!cancelled) {
+        await fetchData();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchData]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={brandColor} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>데이터를 불러오는 중...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.errorContent}>
+          <Ionicons name="alert-circle-outline" size={48} color={STATUS_COLORS.error.text} />
+          <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: brandColor }]}
+            onPress={handleRetry}
+          >
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={dynamicStyles.container}>
