@@ -31,8 +31,8 @@ logger.setLevel(logging.INFO)
 
 lambda_client = boto3.client('lambda', region_name='ap-northeast-2')
 
-_last_notified: dict[int, float] = {}
-NOTIFY_COOLDOWN_SEC = 60  # 1 minute per device
+_last_notified: dict[int, float] = {}  # member_id → last notified timestamp
+NOTIFY_COOLDOWN_SEC = 20  # 20 seconds per member (시연용)
 
 
 def process_scan(event):
@@ -86,24 +86,31 @@ def process_scan(event):
             device_id, len(missing_names), len(grouped)
         )
 
-        # Direct outbound Lambda invocation — block re-invocation within cooldown (30 minutes)
+        # 멤버별 독립 쿨다운 — 다른 멤버가 60초 이내 순차 통과해도 각자 알림 수신
         now = time.time()
-        if now - _last_notified.get(device_id, 0) >= NOTIFY_COOLDOWN_SEC:
-            _last_notified[device_id] = now
+        to_notify = [
+            m for m in grouped
+            if now - _last_notified.get(m['member_id'], 0) >= NOTIFY_COOLDOWN_SEC
+        ]
+        for m in grouped:
+            if m not in to_notify:
+                remaining = int(NOTIFY_COOLDOWN_SEC - (now - _last_notified[m['member_id']]))
+                logger.info("Notification cooldown active — member_id: %s, remaining: %ds", m['member_id'], remaining)
+
+        if to_notify:
+            for m in to_notify:
+                _last_notified[m['member_id']] = now
             try:
                 lambda_client.invoke(
                     FunctionName='smartscan-outbound',
                     InvocationType='Event',
                     Payload=json.dumps({
                         'device_id': device_id,
-                        'missing_by_member': grouped
+                        'missing_by_member': to_notify
                     })
                 )
             except Exception as e:
                 logger.error("Outbound Lambda invocation failed — device_id: %s, error: %s", device_id, str(e))
-        else:
-            remaining = int(NOTIFY_COOLDOWN_SEC - (now - _last_notified[device_id]))
-            logger.info("Notification cooldown active — device_id: %s, remaining: %ds", device_id, remaining)
 
         return {
             "statusCode": 200,
