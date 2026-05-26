@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Authentication API service functions
+ *
+ * This file provides authentication-related API operations including login,
+ * signup, token refresh, and logout. Handles token storage and user data
+ * persistence automatically for seamless authentication management.
+ */
+
 import apiClient from './client';
 import { saveTokens, saveUserInfo, clearTokens } from '../storage/tokenStorage';
 import { formatAxiosError } from '../utils/errorHandler';

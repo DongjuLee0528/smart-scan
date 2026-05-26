@@ -28,11 +28,26 @@ from repositories.item_repository import get_active_items, add_item, deactivate_
 def handle_chatbot(body: dict) -> dict:
     """
     Handle Kakao chatbot utterances
-    Routes based on utterance keywords:
-      - 'list' / 'list'      → belongings list
-      - '[item name] add'     → add belongings
-      - '[item name] delete'  → deactivate belongings
-      - 'device disconnect'   → disconnect device
+
+    Routes based on Korean utterance keywords:
+      - '목록' or '리스트'      → belongings list
+      - '[item name] 추가'     → add belongings
+      - '[item name] 삭제'     → deactivate belongings
+      - '해제'                → disconnect device
+      - '등록'                → device registration guide
+
+    Args:
+        body: KakaoTalk chatbot request body containing userRequest
+              or direct test parameters
+
+    Returns:
+        dict: KakaoTalk skill response or error message
+
+    Flow:
+        1. Extract Kakao user ID and utterance from request
+        2. Check if user is linked to web account
+        3. If not linked, provide magic link for account connection
+        4. Route to appropriate handler based on Korean keywords
     """
     user_req = body.get('userRequest') or {}
     kakao_user_id = user_req.get('user', {}).get('id') or body.get('kakao_user_id', '')
@@ -62,11 +77,12 @@ def handle_chatbot(body: dict) -> dict:
     # member_id remains in link dict (for compatibility purposes) but is no longer used.
     _ = link.get('member_id')
 
-    if '목록' in utterance or '리스트' in utterance:
+    # Korean keyword routing
+    if '목록' in utterance or '리스트' in utterance:  # "목록" (list) or "리스트" (list)
         return _handle_list(kakao_user_id)
-    elif '해제' in utterance:
+    elif '해제' in utterance:  # "해제" (disconnect)
         return _handle_disconnect(kakao_user_id)
-    elif '등록' in utterance:
+    elif '등록' in utterance:  # "등록" (register)
         return make_res(True, (
             "기기 등록 방법:\n\n"
             "1. SmartScan 웹에서 로그인\n"
@@ -75,9 +91,9 @@ def handle_chatbot(body: dict) -> dict:
             "기기 등록은 웹에서만 가능합니다.\n\n"
             "🌐 https://smartscan-hub.com"
         ), True, quick_replies=MAIN_QUICK_REPLIES)
-    elif '추가' in utterance:
+    elif '추가' in utterance:  # "추가" (add)
         return _handle_add(utterance, kakao_user_id)
-    elif '삭제' in utterance or '제거' in utterance:
+    elif '삭제' in utterance or '제거' in utterance:  # "삭제" (delete) or "제거" (remove)
         return _handle_delete(utterance, kakao_user_id)
     else:
         return make_res(True, (
@@ -91,6 +107,17 @@ def handle_chatbot(body: dict) -> dict:
 
 
 def _handle_list(kakao_user_id: str) -> dict:
+    """Handle list command - show registered items
+
+    Displays all active items registered for the user.
+    If no items exist, provides guidance to add items.
+
+    Args:
+        kakao_user_id: KakaoTalk user identifier
+
+    Returns:
+        dict: KakaoTalk response with item list or empty state message
+    """
     items = get_active_items(kakao_user_id)
     if not items:
         return make_res(True, "등록된 소지품이 없습니다.\n'[물건명] 추가'로 소지품을 등록해 보세요.", True,
@@ -105,17 +132,35 @@ MAX_ITEM_NAME_LEN = 30
 
 
 def _handle_add(utterance: str, kakao_user_id: str) -> dict:
-    # Handle "wallet add", "walletadd", "add wallet" etc.
-    # Process after removing emoji/prefix: "➕ item add" → "item add"
+    """Handle add command - register new item
+
+    Parses Korean utterances like "지갑 추가" (add wallet) or "추가 열쇠" (add keys)
+    and registers the item. Validates name length and checks for duplicates.
+
+    Args:
+        utterance: User's Korean utterance containing item name and "추가"
+        kakao_user_id: KakaoTalk user identifier
+
+    Returns:
+        dict: KakaoTalk response with success/error message
+
+    Validation:
+        - Extracts item name from Korean text patterns
+        - Checks name length (max 30 characters)
+        - Prevents duplicate item names
+        - Guides user to web for RFID tag connection
+    """
+    # Handle Korean patterns: "지갑 추가" (wallet add), "추가 열쇠" (add keys) etc.
+    # Process after removing emoji/prefix: "➕ 물품 추가" → "물품 추가"
     clean = re.sub(r'^[^\w가-힣]+', '', utterance).strip()
-    m = re.search(r'(.+?)\s*추가|추가\s*(.+)', clean)
+    m = re.search(r'(.+?)\s*추가|추가\s*(.+)', clean)  # Match "[item] 추가" or "추가 [item]"
     if not m:
         return make_res(False, "형식: [물건명] 추가\n예) 지갑 추가", True,
                         quick_replies=MAIN_QUICK_REPLIES)
 
     name = (m.group(1) or m.group(2) or '').strip()
-    # Guide when pressing "item add" button as-is results in name="item"
-    if not name or name == '물품':
+    # Guide when pressing "물품 추가" (add item) button as-is results in name="물품" (item)
+    if not name or name == '물품':  # "물품" means "item"
         return make_res(False, "물건 이름을 입력해 주세요.\n예) 지갑 추가", True,
                         quick_replies=MAIN_QUICK_REPLIES)
 
@@ -135,17 +180,35 @@ def _handle_add(utterance: str, kakao_user_id: str) -> dict:
 
 
 def _handle_delete(utterance: str, kakao_user_id: str) -> dict:
-    # "wallet delete", "wallet remove"
-    # Process after removing emoji/prefix: "❌ item delete" → "item delete"
+    """Handle delete command - deactivate existing item
+
+    Parses Korean utterances like "지갑 삭제" (delete wallet) or "열쇠 제거" (remove keys)
+    and soft-deletes the specified item.
+
+    Args:
+        utterance: User's Korean utterance containing item name and "삭제" or "제거"
+        kakao_user_id: KakaoTalk user identifier
+
+    Returns:
+        dict: KakaoTalk response with success/error message
+
+    Process:
+        - Extracts item name from Korean text patterns
+        - Searches for exact name match in user's items
+        - Performs soft deletion if item found
+        - Provides feedback on success or failure
+    """
+    # Handle Korean patterns: "지갑 삭제" (wallet delete), "열쇠 제거" (remove keys)
+    # Process after removing emoji/prefix: "❌ 물품 삭제" → "물품 삭제"
     clean = re.sub(r'^[^\w가-힣]+', '', utterance).strip()
-    m = re.search(r'(.+?)\s*(삭제|제거)', clean)
+    m = re.search(r'(.+?)\s*(삭제|제거)', clean)  # Match "[item] 삭제" or "[item] 제거"
     if not m:
         return make_res(False, "형식: [물건명] 삭제\n예) 지갑 삭제", True,
                         quick_replies=MAIN_QUICK_REPLIES)
 
     name = m.group(1).strip()
-    # Guide when pressing "item delete" button as-is results in name="item"
-    if not name or name == '물품':
+    # Guide when pressing "물품 삭제" (delete item) button as-is results in name="물품" (item)
+    if not name or name == '물품':  # "물품" means "item"
         return make_res(False, "물건 이름을 입력해 주세요.\n예) 지갑 삭제", True,
                         quick_replies=MAIN_QUICK_REPLIES)
 
@@ -159,6 +222,22 @@ def _handle_delete(utterance: str, kakao_user_id: str) -> dict:
 
 
 def _handle_disconnect(kakao_user_id: str) -> dict:
+    """Handle disconnect command - unlink device and delete all items
+
+    Performs complete disconnection by deleting all user items and
+    resetting the Kakao account link to pending state.
+
+    Args:
+        kakao_user_id: KakaoTalk user identifier
+
+    Returns:
+        dict: KakaoTalk response confirming disconnection
+
+    Process:
+        1. Soft-delete all active items via HTTP API
+        2. Reset users.kakao_user_id to pending_ state
+        3. User can re-link account using magic link
+    """
     # First bulk soft-delete items (HTTP backend). Then reset users.kakao_user_id to pending_.
     delete_all_items(kakao_user_id)
     delete_user_device(kakao_user_id)
