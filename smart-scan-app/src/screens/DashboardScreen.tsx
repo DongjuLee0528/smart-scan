@@ -31,8 +31,7 @@ import {
   addNotificationReceivedListener,
   addNotificationResponseReceivedListener
 } from '../utils/pushNotifications';
-import { registerFcmToken } from '../api/fcm';
-import * as Notifications from 'expo-notifications';
+import { registerPushToken } from '../api/notifications';
 
 type DashboardScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Dashboard'>;
 
@@ -146,7 +145,7 @@ export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
       const token = await registerForPushNotificationsAsync();
       if (token) {
         const deviceType = Platform.OS === 'ios' ? 'ios' : 'android';
-        await registerFcmToken(token, deviceType);
+        await registerPushToken(token, deviceType);
       }
     } catch (error: any) {
       console.warn('Push notification setup failed:', error);

@@ -57,3 +57,65 @@ export const markAllAsRead = async (): Promise<boolean> => {
     throw formatAxiosError(error);
   }
 };
+
+export interface PushTokenRequest {
+  push_token: string;
+  device_type: 'ios' | 'android';
+  app_version?: string;
+}
+
+export interface PushTokenResponse {
+  id: number;
+  user_id: number;
+  push_token: string;
+  device_type: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const registerPushToken = async (token: string, deviceType: 'ios' | 'android' = 'android'): Promise<PushTokenResponse> => {
+  try {
+    const requestData: PushTokenRequest = {
+      push_token: token,
+      device_type: deviceType,
+    };
+
+    const response = await apiClient.post('/api/notifications/push-token', requestData);
+    if (!response.data || !response.data.success || !response.data.data) {
+      throw new Error('Invalid response format');
+    }
+    return response.data.data;
+  } catch (error) {
+    throw formatAxiosError(error);
+  }
+};
+
+export const updatePushToken = async (token: string, deviceType: 'ios' | 'android' = 'android'): Promise<PushTokenResponse> => {
+  try {
+    const requestData: PushTokenRequest = {
+      push_token: token,
+      device_type: deviceType,
+    };
+
+    const response = await apiClient.put('/api/notifications/push-token', requestData);
+    if (!response.data || !response.data.success || !response.data.data) {
+      throw new Error('Invalid response format');
+    }
+    return response.data.data;
+  } catch (error) {
+    throw formatAxiosError(error);
+  }
+};
+
+export const deletePushToken = async (): Promise<boolean> => {
+  try {
+    const response = await apiClient.delete('/api/notifications/push-token');
+    if (!response.data || !response.data.success) {
+      throw new Error('Invalid response format');
+    }
+    return true;
+  } catch (error) {
+    throw formatAxiosError(error);
+  }
+};

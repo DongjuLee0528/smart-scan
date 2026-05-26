@@ -5,7 +5,7 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
 }
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://smart-scan-tp9k.onrender.com';
 
 const refreshClient = axios.create({
   baseURL: API_BASE_URL,
