@@ -28,6 +28,16 @@ from backend.common.rate_limiter import limiter, rate_limit_exceeded_handler
 
 
 def create_app() -> FastAPI:
+    """
+    Create and configure the FastAPI application instance.
+
+    Sets up middleware, exception handlers, rate limiting, and registers all API routes.
+    The application is configured based on environment variables and includes CORS
+    support for frontend communication.
+
+    Returns:
+        FastAPI: Configured FastAPI application instance
+    """
     app = FastAPI(
         title="Smart Scan API",
         description="Smart Scan Backend API",
@@ -83,10 +93,12 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     async def root():
+        """Root endpoint providing basic API status information."""
         return {"message": "Smart Scan API is running"}
 
     @app.get("/health")
     async def health_check():
+        """Health check endpoint for monitoring and load balancer health checks."""
         return {"status": "healthy"}
 
     return app
