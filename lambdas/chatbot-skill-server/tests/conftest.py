@@ -1,10 +1,17 @@
+"""
+Test configuration for chatbot-skill-server Lambda function tests
+
+Sets up mock environment and modules for testing KakaoTalk chatbot services.
+Configures test environment variables and mocks external dependencies.
+"""
+
 import os
 import sys
 from unittest.mock import MagicMock
 
 os.environ.setdefault('SUPABASE_URL', 'https://test.supabase.co')
 os.environ.setdefault('SUPABASE_SERVICE_KEY', 'test-service-key')
-# magic link JWT (웹 백엔드와 동일한 시크릿 — 테스트용 더미값)
+# Magic link JWT (same secret as web backend - dummy value for testing)
 os.environ.setdefault('KAKAO_LINK_JWT_SECRET', 'test-kakao-link-secret-for-unit-tests!!')
 os.environ.setdefault('SMARTSCAN_WEB_URL', 'https://smartscan-hub.com')
 
