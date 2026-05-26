@@ -4,6 +4,67 @@ from common.db import get_client
 from common.email_client import send_email
 
 
+def send_return_home_alert(event) -> dict:
+    """
+    귀가 시 밖에 두고 온 물건 알림 이메일 발송.
+
+    Event format:
+    {
+      "alert_type": "return_home",
+      "left_items_by_member": [
+        {
+          "member_id": 1,
+          "member_name": "홍길동",
+          "member_email": "hong@example.com",
+          "left_items": ["차키", "지갑"]
+        }
+      ]
+    }
+    """
+    members = event.get('left_items_by_member', [])
+    if not members:
+        return {"status": "skip", "message": "No alert targets"}
+
+    results = []
+    for member in members:
+        member_id = member.get('member_id')
+        member_name = member.get('member_name', '멤버')
+        member_email = member.get('member_email')
+        left_items = member.get('left_items', [])
+
+        if not member_email or not left_items:
+            results.append({"member_id": member_id, "status": "skipped", "reason": "No email or items"})
+            continue
+
+        safe_name = escape(str(member_name))
+        items_html = ''.join(
+            [f'<li style="margin:8px 0;font-size:15px"><strong>{escape(str(item))}</strong></li>'
+             for item in left_items]
+        )
+        html = f"""
+        <div style="font-family:'Apple SD Gothic Neo',sans-serif;max-width:480px;margin:auto;padding:24px">
+          <h2 style="color:#034EA2;margin-bottom:8px">&#x1F3E0; SmartScan Hub 알림</h2>
+          <p style="font-size:16px;margin-bottom:20px">
+            <strong>{safe_name}</strong>님, 귀가하셨군요!<br>밖에 두고 오신 물건이 있어요.
+          </p>
+          <ul style="background:#fff3cd;padding:16px 24px;border-radius:8px;list-style:none">
+            {items_html}
+          </ul>
+          <p style="color:#718096;font-size:12px;margin-top:20px">본 메일은 SmartScan Hub에서 자동 발송되었습니다.</p>
+        </div>
+        """
+
+        subject = f"[SmartScan Hub] {safe_name}님, 밖에 두고 오신 물건이 있어요!"
+        ok = send_email([member_email], subject, html)
+        status = "sent" if ok else "email_failed"
+        print(f"[귀가알림][{status}] {member_name} ({member_email}) → left outside: {left_items}")
+
+        results.append({"member_id": member_id, "status": status})
+
+    sent_count = sum(1 for r in results if r["status"] == "sent")
+    return {"status": "ok", "total": len(results), "sent": sent_count, "details": results}
+
+
 def send_missing_alert(event) -> dict:
     """
     Processes missing item alerts received through direct invocation (payload)

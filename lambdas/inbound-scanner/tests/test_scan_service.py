@@ -11,11 +11,13 @@ from unittest.mock import patch, MagicMock
 
 @pytest.fixture(autouse=True)
 def reset_cooldown():
-    """각 테스트 전후 _last_notified 상태 초기화 (모듈 레벨 변수 격리)."""
+    """각 테스트 전후 모듈 레벨 상태 초기화 (쿨다운 + 외출 태그 기록)."""
     import services.scan_service as svc
     svc._last_notified.clear()
+    svc._last_outbound_tags.clear()
     yield
     svc._last_notified.clear()
+    svc._last_outbound_tags.clear()
 
 
 def _make_event(body: dict) -> dict:
@@ -220,3 +222,82 @@ def test_cooldown_expires_member_notified_again(mock_device, mock_logs, mock_rpc
 
     process_scan(_make_event({"device_serial": "SN-001", "tags": []}))
     assert mock_lambda.invoke.call_count == 2
+
+
+# ── 귀가 시나리오 테스트 ─────────────────────────────────────────────────────
+
+LEFT_ITEM = {"item_name": "차키", "tag_uid": "TAG_KEY", "member_id": 1, "member_name": "홍길동", "member_email": "a@test.com"}
+
+
+@patch("services.scan_service.lambda_client")
+@patch("services.scan_service.get_items_by_tags", return_value=[LEFT_ITEM])
+@patch("services.scan_service.check_missing_items_rpc", return_value=[])
+@patch("services.scan_service._insert_scan_logs")
+@patch("services.scan_service.get_device_by_serial", return_value={"id": 42})
+def test_return_home_detected_after_outbound(mock_device, mock_logs, mock_rpc, mock_items, mock_lambda):
+    """외출 후 같은 태그로 재진입 시 귀가 판정, return_home 알림 발송."""
+    from services.scan_service import process_scan
+
+    # 외출: TAG_WALLET + TAG_KEY 스캔
+    process_scan(_make_event({"device_serial": "SN-001", "tags": ["TAG_WALLET", "TAG_KEY"]}))
+    assert mock_lambda.invoke.call_count == 0  # 누락 없음
+
+    # 귀가: TAG_WALLET만 들고 옴 (TAG_KEY는 밖에 두고 옴)
+    process_scan(_make_event({"device_serial": "SN-001", "tags": ["TAG_WALLET"]}))
+
+    assert mock_lambda.invoke.call_count == 1
+    payload = json.loads(mock_lambda.invoke.call_args.kwargs["Payload"])
+    assert payload["alert_type"] == "return_home"
+    assert len(payload["left_items_by_member"]) == 1
+    assert payload["left_items_by_member"][0]["left_items"] == ["차키"]
+
+
+@patch("services.scan_service.lambda_client")
+@patch("services.scan_service.check_missing_items_rpc", return_value=[])
+@patch("services.scan_service._insert_scan_logs")
+@patch("services.scan_service.get_device_by_serial", return_value={"id": 42})
+def test_return_home_all_items_returned_no_alert(mock_device, mock_logs, mock_rpc, mock_lambda):
+    """귀가 시 모든 물건 들고 오면 알림 없이 200 반환."""
+    from services.scan_service import process_scan
+
+    # 외출: TAG_A
+    process_scan(_make_event({"device_serial": "SN-001", "tags": ["TAG_A"]}))
+
+    # 귀가: TAG_A 그대로 들고 옴 → left_outside_tags 없음
+    response = process_scan(_make_event({"device_serial": "SN-001", "tags": ["TAG_A"]}))
+
+    assert response["statusCode"] == 200
+    assert json.loads(response["body"])["message"] == "Return home processed."
+    mock_lambda.invoke.assert_not_called()
+
+
+@patch("services.scan_service.lambda_client")
+@patch("services.scan_service.check_missing_items_rpc", return_value=[MEMBER_A])
+@patch("services.scan_service._insert_scan_logs")
+@patch("services.scan_service.get_device_by_serial", return_value={"id": 42})
+def test_outbound_scan_inserts_found_logs(mock_device, mock_logs, mock_rpc, mock_lambda):
+    """외출 스캔 시 _insert_scan_logs에 status='FOUND' 전달."""
+    from services.scan_service import process_scan
+
+    process_scan(_make_event({"device_serial": "SN-001", "tags": ["TAG001"]}))
+
+    mock_logs.assert_called_once_with(42, ["TAG001"], status='FOUND')
+
+
+@patch("services.scan_service.lambda_client")
+@patch("services.scan_service.get_items_by_tags", return_value=[])
+@patch("services.scan_service.check_missing_items_rpc", return_value=[])
+@patch("services.scan_service._insert_scan_logs")
+@patch("services.scan_service.get_device_by_serial", return_value={"id": 42})
+def test_return_home_inserts_returned_logs(mock_device, mock_logs, mock_rpc, mock_items, mock_lambda):
+    """귀가 스캔 시 _insert_scan_logs에 status='RETURNED' 전달."""
+    from services.scan_service import process_scan
+
+    # 외출
+    process_scan(_make_event({"device_serial": "SN-001", "tags": ["TAG001"]}))
+    # 귀가
+    process_scan(_make_event({"device_serial": "SN-001", "tags": ["TAG001"]}))
+
+    # 두 번째 호출이 RETURNED
+    calls = mock_logs.call_args_list
+    assert calls[1] == ((42, ["TAG001"]), {"status": "RETURNED"})

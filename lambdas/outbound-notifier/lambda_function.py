@@ -15,7 +15,7 @@ Caller: inbound-scanner Lambda (direct invocation)
 
 import json
 
-from services.notify_service import send_missing_alert
+from services.notify_service import send_missing_alert, send_return_home_alert
 
 
 def lambda_handler(event, context):
@@ -46,7 +46,11 @@ def lambda_handler(event, context):
         }
 
     try:
-        result = send_missing_alert(event)
+        alert_type = event.get('alert_type', 'missing')
+        if alert_type == 'return_home':
+            result = send_return_home_alert(event)
+        else:
+            result = send_missing_alert(event)
         return {"statusCode": 200, "body": result}
     except ValueError as e:
         # Configuration errors such as missing environment variables
