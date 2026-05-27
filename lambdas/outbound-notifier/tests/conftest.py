@@ -1,3 +1,10 @@
+"""
+Test configuration for outbound-notifier Lambda function tests
+
+Sets up mock environment and modules for testing notification services.
+Configures test environment variables and mocks external dependencies.
+"""
+
 import os
 import sys
 from unittest.mock import MagicMock

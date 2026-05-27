@@ -1,33 +1,54 @@
+<!--
+  Device Management Page
+
+  This page allows users to manage their RFID reader devices. Users can:
+  - View their currently registered RFID reader device
+  - Register a new device using its serial number
+  - Unlink an existing device (with warning about impact on tags/items)
+  - See device registration date and serial number
+
+  The page uses the layout system and provides real-time feedback through toasts.
+  Only one device can be registered per user account.
+-->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>기기 관리 - SmartScan Hub</title>
+  <!-- External Dependencies -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>body { font-family: 'Noto Sans KR', sans-serif; }</style>
+  <!-- Internal Scripts -->
   <script src="assets/api.js"></script>
   <script src="assets/layout.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden antialiased">
+  <!-- Sidebar: Dynamically populated by layout.js -->
   <aside id="sidebar-mount"></aside>
 
+  <!-- Main Content Area -->
   <main class="flex-1 flex flex-col min-w-0 bg-slate-50">
+    <!-- Page Header -->
     <header class="h-16 bg-white border-b border-slate-200 flex items-center px-6 shrink-0">
       <h1 class="text-lg font-semibold text-slate-800">기기 관리</h1>
     </header>
 
+    <!-- Page Content Container -->
     <div class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-4xl w-full mx-auto">
+      <!-- Page Description -->
       <div class="mb-6">
         <h2 class="text-2xl font-bold text-slate-900">RFID 리더기</h2>
         <p class="text-slate-500 text-sm mt-1">등록된 리더기를 확인하고, 필요시 새 기기를 등록하거나 연결을 해제하세요.</p>
       </div>
 
+      <!-- Device Status Card: Dynamically populated with current device or empty state -->
       <div id="device-card" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
         <div class="text-center py-8 text-slate-400">불러오는 중...</div>
       </div>
 
+      <!-- Device Registration Form: Shown only when no device is registered -->
       <div id="register-card" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hidden">
         <h3 class="text-lg font-bold text-slate-900 mb-1">새 기기 등록</h3>
         <p class="text-sm text-slate-500 mb-4">리더기 본체에 적힌 시리얼 번호를 입력하세요.</p>
@@ -43,10 +64,23 @@
   </main>
 
   <script>
+    /**
+     * Device Management Page JavaScript
+     * Handles device registration, viewing, and unlinking functionality
+     */
+
+    // Initialize layout with devices page as active
     smartscanLayout.init({ active: 'devices' });
+
+    // Utility functions from layout
     const esc = smartscanLayout.escapeHtml;
     const fmt = smartscanLayout.formatDateTime;
 
+    /**
+     * Renders the UI when a device is connected
+     * @param {Object} d - Device data object containing device info and creation date
+     * @returns {string} HTML string for connected device display
+     */
     function renderConnected(d) {
       const dev = d.device || {};
       return `
@@ -65,6 +99,10 @@
         </div>`;
     }
 
+    /**
+     * Renders the UI when no device is registered
+     * @returns {string} HTML string for empty state display
+     */
     function renderEmpty() {
       return `
         <div class="text-center py-4">
@@ -76,6 +114,10 @@
         </div>`;
     }
 
+    /**
+     * Loads and displays the current device status
+     * Fetches device data from API and updates UI accordingly
+     */
     async function load() {
       const card = document.getElementById('device-card');
       const regCard = document.getElementById('register-card');
@@ -94,6 +136,10 @@
       }
     }
 
+    /**
+     * Handles device unlinking with user confirmation
+     * Shows warning about impact on tags/items before proceeding
+     */
     async function unlink() {
       if (!confirm('기기 연결을 해제하면 관련 태그/소지품 정보도 영향을 받을 수 있습니다. 계속할까요?')) return;
       try {
@@ -105,6 +151,10 @@
       }
     }
 
+    /**
+     * Device Registration Form Handler
+     * Handles form submission for registering new devices
+     */
     document.getElementById('register-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const serial = document.getElementById('serial-input').value.trim();
@@ -123,6 +173,7 @@
       }
     });
 
+    // Initialize page by loading current device status
     load();
   </script>
 </body>

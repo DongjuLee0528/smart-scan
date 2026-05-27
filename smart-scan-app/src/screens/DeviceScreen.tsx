@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Device Screen component for managing smart scan device registration.
+ * Provides interface for registering NFC scanning devices, viewing device status,
+ * and managing device connections. Handles device serial number validation,
+ * registration processes, and device unlinking with proper error handling.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -25,15 +32,29 @@ import { AuthStackParamList } from '../types/navigation';
 import { TabBar } from '../components/TabBar';
 import { handleApiError } from '../utils/errorHandler';
 
+/** Navigation prop type for the Device screen */
 type DeviceScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Device'>;
 
+/**
+ * Props interface for the DeviceScreen component.
+ */
 interface Props {
+  /** React Navigation prop for screen navigation */
   navigation: DeviceScreenNavigationProp;
 }
 
-
+/**
+ * DeviceScreen component that provides device management functionality.
+ * Allows users to register new scanning devices, view current device status,
+ * and unlink devices when needed. Includes comprehensive error handling
+ * and user feedback for all device operations.
+ *
+ * @param navigation - React Navigation prop for screen transitions
+ */
 export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, brandColor } = useTheme();
+
+  // State management for device data and UI states
   const [deviceData, setDeviceData] = useState<MyDeviceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +62,10 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
 
+  /**
+   * Fetches the current user's device registration status from the server.
+   * Updates component state with device information or handles errors appropriately.
+   */
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -56,44 +81,52 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
+  /**
+   * Handles device registration with the provided serial number.
+   * Validates input, registers the device, and updates the UI accordingly.
+   */
   const handleRegister = useCallback(async () => {
     if (!serial || serial.trim() === '') {
-      Alert.alert('오류', '시리얼 번호를 입력해주세요.');
+      Alert.alert('Error', 'Please enter a serial number.');
       return;
     }
 
     setIsRegistering(true);
     try {
       await registerDevice(serial.trim());
-      Alert.alert('성공', '기기가 등록되었습니다.');
+      Alert.alert('Success', 'Device has been registered successfully.');
       setSerial('');
-      await fetchData();
+      await fetchData(); // Refresh device data to show the new registration
     } catch (error: any) {
       const message = handleApiError(error);
-      Alert.alert('등록 실패', message);
+      Alert.alert('Registration Failed', message);
     } finally {
       setIsRegistering(false);
     }
   }, [serial, fetchData]);
 
+  /**
+   * Handles device unlinking with user confirmation.
+   * Shows a warning dialog and processes the unlinking if confirmed.
+   */
   const handleUnlink = useCallback(async () => {
     Alert.alert(
-      '기기 연결 해제',
-      '기기 연결을 해제하면 관련 태그/소지품 정보도 영향을 받을 수 있습니다. 계속하시겠습니까?',
+      'Unlink Device',
+      'Unlinking this device may affect related tag and item information. Do you want to continue?',
       [
-        { text: '취소', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: '해제',
+          text: 'Unlink',
           style: 'destructive',
           onPress: async () => {
             setIsUnlinking(true);
             try {
               await unlinkDevice();
-              Alert.alert('성공', '기기 연결이 해제되었습니다.');
-              await fetchData();
+              Alert.alert('Success', 'Device has been unlinked successfully.');
+              await fetchData(); // Refresh to show no device is registered
             } catch (error: any) {
               const message = handleApiError(error);
-              Alert.alert('해제 실패', message);
+              Alert.alert('Unlink Failed', message);
             } finally {
               setIsUnlinking(false);
             }
@@ -103,6 +136,10 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
     );
   }, [fetchData]);
 
+  /**
+   * Retry handler for failed data loading attempts.
+   * Provides user-initiated error recovery mechanism.
+   */
   const handleRetry = useCallback(() => {
     fetchData();
   }, [fetchData]);
@@ -249,6 +286,10 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
     },
   }), [colors, brandColor]);
 
+  /**
+   * Effect hook to load device data when the component mounts.
+   * Includes cleanup to prevent state updates on unmounted components.
+   */
   useEffect(() => {
     let cancelled = false;
 
@@ -269,7 +310,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={brandColor} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>데이터를 불러오는 중...</Text>
+        <Text style={[styles.loadingText, { color: colors.text }]}>Loading data...</Text>
       </SafeAreaView>
     );
   }
@@ -284,7 +325,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
             style={[styles.retryButton, { backgroundColor: brandColor }]}
             onPress={handleRetry}
           >
-            <Text style={styles.retryButtonText}>다시 시도</Text>
+            <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -300,13 +341,13 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={dynamicStyles.headerTitle}>디바이스 관리</Text>
+        <Text style={dynamicStyles.headerTitle}>Device Management</Text>
       </View>
 
       <ScrollView style={dynamicStyles.content} showsVerticalScrollIndicator={false}>
         <View style={dynamicStyles.card}>
-          <Text style={dynamicStyles.cardTitle}>RFID 리더기</Text>
-          <Text style={dynamicStyles.cardSubtitle}>등록된 리더기를 확인하고 관리하세요.</Text>
+          <Text style={dynamicStyles.cardTitle}>RFID Reader</Text>
+          <Text style={dynamicStyles.cardSubtitle}>View and manage your registered reader device.</Text>
 
           {deviceData?.device ? (
             <View style={dynamicStyles.deviceInfo}>
@@ -318,7 +359,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
                   {deviceData.device.serial_number}
                 </Text>
                 <Text style={dynamicStyles.dateText}>
-                  등록일: {formatDateTime(deviceData.created_at)}
+                  Registered: {formatDateTime(deviceData.created_at)}
                 </Text>
               </View>
               <TouchableOpacity
@@ -332,7 +373,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
                 {isUnlinking ? (
                   <ActivityIndicator size="small" color={STATUS_COLORS.error.text} />
                 ) : (
-                  <Text style={dynamicStyles.unlinkButtonText}>연결 해제</Text>
+                  <Text style={dynamicStyles.unlinkButtonText}>Unlink</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -341,22 +382,22 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
               <View style={dynamicStyles.emptyIcon}>
                 <Ionicons name="hardware-chip-outline" size={24} color={STATUS_COLORS.neutral.text} />
               </View>
-              <Text style={dynamicStyles.emptyTitle}>등록된 기기가 없습니다.</Text>
-              <Text style={dynamicStyles.emptySubtitle}>아래에서 시리얼 번호로 기기를 등록하세요.</Text>
+              <Text style={dynamicStyles.emptyTitle}>No device registered.</Text>
+              <Text style={dynamicStyles.emptySubtitle}>Register a device below using its serial number.</Text>
             </View>
           )}
         </View>
 
         {!deviceData?.device && (
           <View style={dynamicStyles.card}>
-            <Text style={dynamicStyles.cardTitle}>새 기기 등록</Text>
+            <Text style={dynamicStyles.cardTitle}>Register New Device</Text>
             <View style={dynamicStyles.inputContainer}>
-              <Text style={dynamicStyles.inputLabel}>시리얼 번호</Text>
+              <Text style={dynamicStyles.inputLabel}>Serial Number</Text>
               <TextInput
                 style={dynamicStyles.textInput}
                 value={serial}
                 onChangeText={setSerial}
-                placeholder="예: SSH-2025-0001"
+                placeholder="e.g.: SSH-2025-0001"
                 placeholderTextColor={colors.subtext}
                 autoCapitalize="none"
               />
@@ -372,7 +413,7 @@ export const DeviceScreen: React.FC<Props> = ({ navigation }) => {
               {isRegistering ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={dynamicStyles.registerButtonText}>기기 등록</Text>
+                <Text style={dynamicStyles.registerButtonText}>Register Device</Text>
               )}
             </TouchableOpacity>
           </View>
