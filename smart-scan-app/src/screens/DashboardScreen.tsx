@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Dashboard Screen component providing overview of family monitoring.
+ * Main screen that displays family statistics, member summaries, tag status overview,
+ * and quick access to key functionality. Integrates push notifications for real-time
+ * alerts and provides comprehensive family monitoring capabilities.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
