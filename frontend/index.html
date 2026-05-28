@@ -1,27 +1,47 @@
+<!--
+  SmartScan Hub Landing Page
+
+  This is the main landing page for the SmartScan Hub application - an intelligent RFID-based
+  personal item tracking system. The page showcases key features, demonstrates how the system
+  works, and provides entry points for new user registration and existing user login.
+
+  Key Features Highlighted:
+  - Automatic scanning of personal items via UHF RFID
+  - Real-time notifications for missing items
+  - Family member management
+  - Simple 4-step operation process
+
+  The page supports dark/light mode theme switching and responsive design.
+-->
 <!DOCTYPE html>
 <html lang="ko" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SmartScan Hub - 소지품 자동 체크 시스템</title>
+  <!-- External Tailwind CSS for utility-first styling -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Import Korean-optimized Pretendard font for better readability */
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     body { font-family: 'Pretendard', sans-serif; }
   </style>
   <script>
+    /* Custom Tailwind configuration with brand colors and dark mode support */
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
+            // Primary brand colors for consistent theming
             primary: {
-              DEFAULT: 'rgb(3, 78, 162)',
-              dark: 'rgb(2, 56, 117)',
-              light: 'rgb(230, 240, 250)',
+              DEFAULT: 'rgb(3, 78, 162)',    // Main blue brand color
+              dark: 'rgb(2, 56, 117)',       // Darker blue for hover states
+              light: 'rgb(230, 240, 250)',   // Light blue for backgrounds
             },
-            'accent-green': 'rgb(16, 185, 129)',
-            'accent-red': 'rgb(239, 68, 68)',
+            // Semantic colors for status indicators
+            'accent-green': 'rgb(16, 185, 129)',  // Success/present items
+            'accent-red': 'rgb(239, 68, 68)',     // Error/missing items
           }
         }
       }
@@ -30,10 +50,13 @@
 </head>
 <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors">
 
+  <!-- Main Navigation Bar: Sticky header with logo, theme toggle, and auth buttons -->
   <nav class="sticky top-0 z-50 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 transition-colors">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
+        <!-- Logo Section: Brand icon and name -->
         <div class="flex items-center space-x-2">
+          <!-- Scanner/Frame Icon representing RFID scanning functionality -->
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" class="w-8 h-8 text-primary">
@@ -43,9 +66,12 @@
           </svg>
           <span class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">SmartScan Hub</span>
         </div>
+        <!-- Navigation Actions: Theme toggle and authentication buttons -->
         <div class="flex items-center space-x-3">
+          <!-- Dark/Light Mode Toggle Button -->
           <button id="themeToggle"
             class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <!-- Sun icon for light mode (shown when dark mode is inactive) -->
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round" class="block dark:hidden text-gray-600">
@@ -55,13 +81,15 @@
               <path d="M2 12h2"/><path d="M20 12h2"/>
               <path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
             </svg>
+            <!-- Moon icon for dark mode (shown when dark mode is active) -->
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round" class="hidden dark:block text-gray-300">
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
             </svg>
           </button>
-          
+
+          <!-- Authentication Links: These will be dynamically updated by JavaScript -->
           <a id="navLoginBtn" href="login.html"
             class="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-colors px-3 py-2">로그인</a>
           <a id="navSignupBtn" href="signup.html"
@@ -72,6 +100,7 @@
   </nav>
 
   <main>
+    <!-- Hero Section: Main landing content with value proposition -->
     <section class="relative pt-20 pb-32 overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent dark:from-primary/10 -z-10 rounded-b-[4rem] md:rounded-b-[8rem]"></div>
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -94,7 +123,9 @@
           </a>
         </div>
 
+        <!-- Item Status Demo: Visual representation of scanned items -->
         <div class="mt-16 md:mt-24 relative max-w-2xl mx-auto">
+          <!-- Animated border to suggest scanning activity -->
           <div class="absolute -inset-4 md:-inset-8 rounded-full border-2 border-dashed border-primary/10 dark:border-primary/20 animate-[spin_20s_linear_infinite]"></div>
           <div class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-10 md:p-14 border border-gray-100 dark:border-gray-700">
             <div class="flex justify-center items-end gap-8 md:gap-12">
@@ -160,6 +191,7 @@
       </div>
     </section>
 
+    <!-- Features Section: Three main features of the system -->
     <section class="py-24 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
@@ -211,6 +243,7 @@
       </div>
     </section>
 
+    <!-- How It Works Section: 4-step process explanation -->
     <section class="py-24 bg-gray-50 dark:bg-gray-950">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-20">
@@ -291,6 +324,7 @@
       </div>
     </section>
 
+    <!-- Call-to-Action Section: Final conversion section with strong CTA -->
     <section class="py-24 bg-primary dark:bg-[#022A5A] relative overflow-hidden">
       <div class="absolute inset-0 opacity-10">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -313,6 +347,7 @@
     </section>
   </main>
 
+  <!-- Footer: Company information and links -->
   <footer class="bg-gray-900 text-gray-400 py-12 border-t border-gray-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col md:flex-row justify-between items-center md:items-start mb-8">
@@ -357,13 +392,25 @@
   </footer>
 
   <script>
-    // Dark mode toggle
+    /**
+     * Landing Page Interactive Features
+     * Handles dark mode toggling and dynamic UI updates based on user authentication status
+     */
+
+    /**
+     * Dark Mode Toggle
+     * Toggles between light and dark themes by adding/removing 'dark' class from document element
+     */
     const btn = document.getElementById('themeToggle');
     btn.addEventListener('click', () => {
       document.documentElement.classList.toggle('dark');
     });
 
-    // Check login status and update UI accordingly
+    /**
+     * Dynamic UI Updates Based on Authentication Status
+     * Checks localStorage for user email and updates navigation and CTA buttons accordingly
+     * If user is logged in, converts signup buttons to dashboard links and login to user email display
+     */
     window.addEventListener('DOMContentLoaded', () => {
       const email = localStorage.getItem('userEmail');
       const loginBtn = document.getElementById('navLoginBtn');
@@ -372,13 +419,15 @@
       const ctaStartBtn = document.getElementById('ctaStartBtn');
 
       if (email) {
-        // 1. Navigation login button -> change to email display
+        // If user is authenticated, update UI elements accordingly
+
+        // 1. Navigation login button -> display user email instead of "Login"
         if (loginBtn) {
           loginBtn.textContent = email;
           loginBtn.href = "#";
         }
-        
-        // 2. Navigation signup button -> change to logout
+
+        // 2. Navigation signup button -> convert to logout functionality
         if (signupBtn) {
           signupBtn.textContent = "Logout";
           signupBtn.href = "#";
