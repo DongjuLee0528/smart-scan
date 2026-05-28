@@ -9,7 +9,18 @@ from common.db import get_client
 
 
 def get_device_by_serial(serial_number: str):
-    """Find device by serial number"""
+    """Find device by serial number
+
+    Retrieves device information including ID and family ID
+    based on the device's serial number.
+
+    Args:
+        serial_number: Unique serial number of the device
+
+    Returns:
+        dict or None: Device data containing id and family_id,
+                      or None if device not found
+    """
     client = get_client()
     res = (client.table('devices')
            .select('id, family_id')
@@ -20,7 +31,16 @@ def get_device_by_serial(serial_number: str):
 
 
 def get_items_by_tags(tag_uids: list) -> list:
-    """tag_uid 목록으로 아이템 이름과 소유자 정보 조회 (귀가 이메일용)"""
+    """Retrieve item names and owner information by tag UID list
+
+    Used for generating homecoming email notifications.
+
+    Args:
+        tag_uids: List of RFID tag UIDs to look up
+
+    Returns:
+        List of dictionaries containing item and member information
+    """
     if not tag_uids:
         return []
     client = get_client()
