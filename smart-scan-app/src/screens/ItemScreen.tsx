@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Item Screen component for managing trackable items.
+ * Provides CRUD operations for items that can be associated with NFC tags.
+ * Features include adding new items, editing existing items, deleting items,
+ * and viewing item lists with proper error handling and loading states.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
