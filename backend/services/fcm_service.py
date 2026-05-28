@@ -1,3 +1,17 @@
+"""
+Firebase Cloud Messaging service
+
+Service for sending push notifications to user devices through Firebase Cloud Messaging (FCM).
+Handles notification delivery, token management, and device targeting for the Smart Scan system.
+
+Main features:
+- Push notification delivery to Android and iOS devices
+- FCM token management and validation
+- Notification customization (title, body, data payload)
+- Device-specific notification targeting
+- Automatic token cleanup for invalid devices
+"""
+
 import logging
 from typing import Dict, Any, Optional
 
@@ -12,6 +26,12 @@ logger = logging.getLogger(__name__)
 
 
 class FcmService:
+    """
+    Firebase Cloud Messaging service
+
+    Manages push notification delivery through Firebase Cloud Messaging.
+    Provides methods for sending notifications and managing FCM tokens.
+    """
     def __init__(self, db: Optional[Session] = None):
         self.db = db
         if db:

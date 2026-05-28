@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Reusable Input Modal component for collecting text input from users.
+ * Provides a modal dialog with text input field, confirmation and cancellation buttons.
+ * Supports keyboard handling, placeholder text, default values, and responsive design.
+ * Used throughout the app for adding new items, editing content, and collecting user input.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
@@ -13,15 +20,36 @@ import {
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 
+/**
+ * Props interface for the InputModal component.
+ * Defines all configurable options for the modal dialog behavior and appearance.
+ */
 interface InputModalProps {
+  /** Whether the modal is visible and should be displayed */
   visible: boolean;
+  /** Title text displayed at the top of the modal */
   title: string;
+  /** Optional placeholder text for the input field */
   placeholder?: string;
+  /** Optional default value to pre-populate the input field */
   defaultValue?: string;
+  /** Callback function called when the user confirms input */
   onConfirm: (value: string) => void;
+  /** Callback function called when the user cancels or dismisses the modal */
   onCancel: () => void;
 }
 
+/**
+ * InputModal component that renders a modal dialog with text input capabilities.
+ * Manages internal state for the input value and provides keyboard handling.
+ *
+ * @param visible - Controls modal visibility
+ * @param title - Modal title text
+ * @param placeholder - Input field placeholder text
+ * @param defaultValue - Default input value (defaults to empty string)
+ * @param onConfirm - Callback for confirm action with input value
+ * @param onCancel - Callback for cancel action
+ */
 export const InputModal: React.FC<InputModalProps> = ({
   visible,
   title,
@@ -33,15 +61,26 @@ export const InputModal: React.FC<InputModalProps> = ({
   const { colors, brandColor } = useTheme();
   const [value, setValue] = useState(defaultValue);
 
+  /**
+   * Effect to reset input value when modal becomes visible or default value changes.
+   * Ensures fresh state for each modal interaction.
+   */
   useEffect(() => {
     setValue(defaultValue);
   }, [defaultValue, visible]);
 
+  /**
+   * Handles confirm action by calling the onConfirm callback with current value
+   * and resetting the input field.
+   */
   const handleConfirm = () => {
     onConfirm(value);
     setValue('');
   };
 
+  /**
+   * Handles cancel action by calling the onCancel callback and clearing the input field.
+   */
   const handleCancel = () => {
     onCancel();
     setValue('');

@@ -1,3 +1,16 @@
+"""
+Firebase configuration and initialization module
+
+Handles Firebase Admin SDK initialization for the Smart Scan system.
+Manages Firebase app instance and credentials for Firebase Cloud Messaging (FCM).
+
+Features:
+- Firebase Admin SDK initialization with service account credentials
+- Environment-based configuration management
+- Singleton pattern for Firebase app instance
+- Error handling for missing credentials
+"""
+
 import json
 import logging
 import os
