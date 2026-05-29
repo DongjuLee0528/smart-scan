@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Login Screen component for user authentication.
+ * Provides secure login interface with email and password validation,
+ * remember me functionality, and navigation to signup. Handles authentication
+ * flow with proper error handling and user feedback.
+ */
+
 import React, { useState, useCallback } from 'react';
 import {
   View,
