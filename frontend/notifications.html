@@ -1,32 +1,53 @@
+<!--
+  Notifications Management Page
+
+  This page displays and manages user notifications from the SmartScan system.
+  Users can:
+  - View all received notifications (from various channels: email, Kakao, SMS)
+  - Mark individual notifications as read
+  - Mark all notifications as read at once
+  - See notification details including timestamp, channel, and content
+
+  Notifications are displayed with visual indicators for unread status.
+-->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>알림 - SmartScan Hub</title>
+  <!-- External Dependencies -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>body { font-family: 'Noto Sans KR', sans-serif; }</style>
+  <!-- Internal Scripts -->
   <script src="assets/api.js"></script>
   <script src="assets/layout.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden antialiased">
+  <!-- Sidebar: Dynamically populated by layout.js -->
   <aside id="sidebar-mount"></aside>
 
+  <!-- Main Content Area -->
   <main class="flex-1 flex flex-col min-w-0 bg-slate-50">
+    <!-- Page Header -->
     <header class="h-16 bg-white border-b border-slate-200 flex items-center px-6 shrink-0">
       <h1 class="text-lg font-semibold text-slate-800">알림</h1>
     </header>
 
+    <!-- Page Content Container -->
     <div class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-4xl w-full mx-auto">
+      <!-- Page Header with Actions -->
       <div class="mb-6 flex items-start justify-between">
         <div>
           <h2 class="text-2xl font-bold text-slate-900">내 알림</h2>
           <p class="text-slate-500 text-sm mt-1">수신한 알림을 확인하고 읽음 처리합니다.</p>
         </div>
+        <!-- Mark All Read Button -->
         <button id="mark-all-btn" class="px-3.5 py-2 text-sm font-medium text-[#034EA2] border border-[#034EA2]/30 rounded-lg hover:bg-[#034EA2]/5 disabled:opacity-40">모두 읽음</button>
       </div>
 
+      <!-- Notifications List: Dynamically populated with notifications -->
       <div id="list" class="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
         <div class="px-6 py-12 text-center text-slate-400">불러오는 중...</div>
       </div>
@@ -34,18 +55,36 @@
   </main>
 
   <script>
+    /**
+     * Notifications Management Page JavaScript
+     * Handles notification display, marking as read, and batch operations
+     */
+
+    // Initialize layout with notifications page as active
     smartscanLayout.init({ active: 'notifications' });
+
+    // Utility functions from layout
     const esc = smartscanLayout.escapeHtml;
     const fmt = smartscanLayout.formatDateTime;
 
+    // Cache for loaded notifications to avoid unnecessary API calls
     let cached = [];
 
+    /**
+     * Renders notification channel badges with appropriate colors
+     * @param {string} ch - Channel type (kakao, sms, etc.)
+     * @returns {string} HTML string for channel badge
+     */
     function channelBadge(ch) {
       if (ch === 'kakao') return `<span class="px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 text-xs font-medium">카카오</span>`;
       if (ch === 'sms') return `<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium">SMS</span>`;
       return `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-medium">${esc(ch)}</span>`;
     }
 
+    /**
+     * Renders the notifications list with read/unread states
+     * @param {Array} list - Array of notification objects
+     */
     function render(list) {
       const mount = document.getElementById('list');
       if (list.length === 0) {
@@ -81,6 +120,10 @@
       });
     }
 
+    /**
+     * Marks a single notification as read
+     * @param {string|number} id - Notification ID
+     */
     async function markRead(id) {
       try {
         await smartscanApi.markNotificationAsRead(id);
@@ -92,6 +135,10 @@
       }
     }
 
+    /**
+     * Mark All Read Button Handler
+     * Marks all unread notifications as read in batch
+     */
     document.getElementById('mark-all-btn').addEventListener('click', async () => {
       const unread = cached.filter((n) => !n.is_read);
       if (unread.length === 0) return;
@@ -109,6 +156,9 @@
       }
     });
 
+    /**
+     * Loads notifications from API and renders them
+     */
     async function load() {
       try {
         const res = await smartscanApi.getMyNotifications();
@@ -119,6 +169,7 @@
       }
     }
 
+    // Initialize page by loading notifications
     load();
   </script>
 </body>
