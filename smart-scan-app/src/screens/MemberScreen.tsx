@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Member Screen component for family member management.
+ * Provides interface for viewing family members, inviting new members,
+ * and removing existing members. Includes role-based access control
+ * where only owners can invite or remove members, with comprehensive
+ * validation for member invitation data.
+ */
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
