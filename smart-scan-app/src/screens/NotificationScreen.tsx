@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Notification Screen component for displaying and managing user notifications.
+ * Provides a comprehensive interface for viewing family alerts, missing item notifications,
+ * and other system notifications. Supports individual and bulk notification management
+ * with real-time status updates and user-friendly interaction patterns.
+ */
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
@@ -24,21 +31,48 @@ import {
 import { handleApiError } from '../utils/errorHandler';
 import { getRelativeTime } from '../utils/dateUtils';
 
+/** Navigation prop type for the Notification screen */
 type NotificationScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Notification'>;
 
+/**
+ * Props interface for the NotificationScreen component.
+ */
 interface Props {
+  /** React Navigation prop for screen navigation */
   navigation: NotificationScreenNavigationProp;
 }
 
+/**
+ * Props interface for individual notification item components.
+ * Used to render each notification in the list with interaction handlers.
+ */
 interface NotificationItemProps {
+  /** The notification data to display */
   notification: NotificationResponse;
+  /** Handler called when the notification is pressed */
   onPress: (notification: NotificationResponse) => void;
+  /** Whether this notification is currently being marked as read */
   isMarking: boolean;
 }
 
+/**
+ * Individual notification item component that displays notification details.
+ * Memoized for performance optimization when rendering large notification lists.
+ *
+ * @param notification - The notification data to display
+ * @param onPress - Handler called when the notification is tapped
+ * @param isMarking - Loading state indicator for mark-as-read operation
+ */
 const NotificationItem: React.FC<NotificationItemProps> = React.memo(({ notification, onPress, isMarking }) => {
   const { colors, brandColor } = useTheme();
 
+  /**
+   * Determines the appropriate icon and color based on notification type.
+   * Returns visual indicators that help users quickly identify notification categories.
+   *
+   * @param type - The notification type (missing_alert, manual_alert, etc.)
+   * @returns Object containing icon name and color for the notification
+   */
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'missing_alert':
@@ -113,14 +147,27 @@ const NotificationItem: React.FC<NotificationItemProps> = React.memo(({ notifica
   );
 });
 
+/**
+ * NotificationScreen component that provides a comprehensive interface for managing notifications.
+ * Features include viewing notifications, marking individual or all notifications as read,
+ * and handling various notification types with appropriate visual feedback.
+ *
+ * @param navigation - React Navigation prop for screen transitions
+ */
 export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, brandColor } = useTheme();
+
+  // State management for notification data and UI states
   const [notificationsData, setNotificationsData] = useState<NotificationListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [markingId, setMarkingId] = useState<number | null>(null);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
 
+  /**
+   * Fetches notification data from the server and updates component state.
+   * Handles loading states and error conditions with user-friendly messages.
+   */
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -135,13 +182,19 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
+  /**
+   * Marks a specific notification as read and updates the UI.
+   * Skips operation if the notification is already read to prevent unnecessary API calls.
+   *
+   * @param notification - The notification to mark as read
+   */
   const handleMarkAsRead = useCallback(async (notification: NotificationResponse) => {
     if (notification.is_read) return;
 
     try {
       setMarkingId(notification.id);
       await markAsRead(notification.id);
-      await fetchData();
+      await fetchData(); // Refresh data to show updated read status
     } catch (error: any) {
       const message = handleApiError(error);
       setError(message);
@@ -150,6 +203,10 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [fetchData]);
 
+  /**
+   * Marks all unread notifications as read in a single operation.
+   * Provides bulk notification management for improved user experience.
+   */
   const handleMarkAllAsRead = useCallback(async () => {
     if (!hasUnreadNotifications) return;
 
@@ -157,7 +214,7 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
       setIsMarkingAll(true);
       setError(null);
       await markAllAsRead();
-      await fetchData();
+      await fetchData(); // Refresh to show all notifications as read
     } catch (error: any) {
       const message = handleApiError(error);
       setError(message);
@@ -166,14 +223,26 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [fetchData]);
 
+  /**
+   * Retry handler for failed data loading attempts.
+   * Provides user-initiated error recovery mechanism.
+   */
   const handleRetry = useCallback(() => {
     fetchData();
   }, [fetchData]);
 
+  /**
+   * Computed state that determines if there are any unread notifications.
+   * Used to enable/disable the "Mark All as Read" button.
+   */
   const hasUnreadNotifications = useMemo(() => {
     return notificationsData?.notifications.some(n => !n.is_read) ?? false;
   }, [notificationsData]);
 
+  /**
+   * Effect hook to load notifications when the component mounts.
+   * Ensures fresh notification data is available when the screen is first displayed.
+   */
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -325,7 +394,7 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <SafeAreaView style={[dynamicStyles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={brandColor} />
-        <Text style={dynamicStyles.loadingText}>알림을 불러오는 중...</Text>
+        <Text style={dynamicStyles.loadingText}>Loading notifications...</Text>
       </SafeAreaView>
     );
   }
@@ -340,7 +409,7 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
             style={dynamicStyles.retryButton}
             onPress={handleRetry}
           >
-            <Text style={dynamicStyles.retryButtonText}>다시 시도</Text>
+            <Text style={dynamicStyles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -357,7 +426,7 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
           >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={dynamicStyles.headerTitle}>알림</Text>
+          <Text style={dynamicStyles.headerTitle}>Notifications</Text>
         </View>
         <TouchableOpacity
           style={dynamicStyles.markAllButton}
@@ -367,20 +436,20 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
           {isMarkingAll ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={dynamicStyles.markAllButtonText}>모두 읽음</Text>
+            <Text style={dynamicStyles.markAllButtonText}>Mark All Read</Text>
           )}
         </TouchableOpacity>
       </View>
 
       <ScrollView style={dynamicStyles.content} showsVerticalScrollIndicator={false}>
         <View style={dynamicStyles.titleSection}>
-          <Text style={dynamicStyles.title}>내 알림</Text>
-          <Text style={dynamicStyles.subtitle}>수신한 알림을 확인하고 읽음 처리합니다.</Text>
+          <Text style={dynamicStyles.title}>My Notifications</Text>
+          <Text style={dynamicStyles.subtitle}>View and manage your received notifications.</Text>
         </View>
 
         <View style={dynamicStyles.card}>
-          <Text style={dynamicStyles.cardTitle}>알림 목록</Text>
-          <Text style={dynamicStyles.cardSubtitle}>받은 알림을 확인하세요.</Text>
+          <Text style={dynamicStyles.cardTitle}>Notification List</Text>
+          <Text style={dynamicStyles.cardSubtitle}>Check your received notifications.</Text>
 
           {notificationsData && notificationsData.notifications.length > 0 ? (
             <View style={dynamicStyles.notificationsList}>
@@ -398,9 +467,9 @@ export const NotificationScreen: React.FC<Props> = ({ navigation }) => {
               <View style={dynamicStyles.emptyIcon}>
                 <Ionicons name="notifications-outline" size={32} color={STATUS_COLORS.neutral.text} />
               </View>
-              <Text style={dynamicStyles.emptyTitle}>받은 알림이 없습니다.</Text>
+              <Text style={dynamicStyles.emptyTitle}>No notifications received.</Text>
               <Text style={dynamicStyles.emptySubtitle}>
-                새로운 알림이 도착하면 여기에 표시됩니다.
+                New notifications will appear here when they arrive.
               </Text>
             </View>
           )}
