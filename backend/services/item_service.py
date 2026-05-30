@@ -57,7 +57,7 @@ class ItemService:
         for item, label_id in items_with_labels:
             owner_user_id = ud_id_to_user_id.get(item.user_device_id)
             log = latest_logs.get(item.id)
-            if log is None:
+            if log is None or log.status == "RETURNED":
                 tag_status = "집"
             elif log.status == "FOUND":
                 tag_status = "소지"

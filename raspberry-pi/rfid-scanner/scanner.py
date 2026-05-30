@@ -58,6 +58,20 @@ def wait_for_config() -> dict:
         time.sleep(CONFIG_RETRY_SEC)
 
 
+def _send_scan(client, tags: list):
+    """Lambda POST 전송 + 응답 로깅"""
+    try:
+        result = client.send_scan(tags)
+        if result:
+            msg = result.get("message", "")
+            if "Missing" in msg or "누락" in msg:
+                logger.warning(">>> Missing items: %s", msg)
+            else:
+                logger.info("응답 200: %s", msg)
+    except Exception as e:
+        logger.error("전송 오류: %s", e)
+
+
 def main():
     logger.info("=== SmartScan Hub RFID Scanner 시작 ===")
 
@@ -101,26 +115,18 @@ def main():
             continue
 
         if not tags:
-            logger.debug("태그 없음 — 대기 중")
-            time.sleep(SCAN_INTERVAL_SEC)
-            continue
+            continue  # sleep 없이 즉시 재시도 (collect_tags가 window_sec 동안 충분히 대기)
 
         # ── SCANNING: 태그 감지 → 1회 전송 ──────────────────────────
         logger.info("스캔 이벤트 시작: %s", tags)
-        try:
-            result = client.send_scan(tags)
-            if result:
-                msg = result.get("message", "")
-                if "Missing" in msg or "누락" in msg:
-                    logger.warning(">>> %s", msg)
-                else:
-                    logger.info(">>> %s", msg)
-        except Exception as e:
-            logger.error("전송 오류: %s", e)
+        _send_scan(client, tags)
 
         # ── WAITING_CLEAR: 태그 소멸 확인 ────────────────────────────
-        logger.info("WAITING_CLEAR — 태그 소멸 대기 중 (최대 무제한, 감지 없으면 IDLE 복귀)")
-        clear_deadline = time.time() + clear_wait_sec
+        # 연속 CLEAR_CONFIRM_COUNT회 빈 리드 시 소멸 확인, 새 태그는 별도 스캔 이벤트 처리
+        CLEAR_CONFIRM_COUNT = 3
+        scanned_set = set(tags)
+        empty_count = 0
+        logger.info("WAITING_CLEAR — 태그 소멸 대기 중 (연속 %d회 비면 IDLE 복귀)", CLEAR_CONFIRM_COUNT)
         while True:
             time.sleep(CLEAR_POLL_SEC)
             try:
@@ -129,13 +135,18 @@ def main():
                 remaining = []
 
             if not remaining:
-                if time.time() >= clear_deadline:
+                empty_count += 1
+                if empty_count >= CLEAR_CONFIRM_COUNT:
                     logger.info("태그 소멸 확인 — IDLE 복귀 (다음 이벤트 대기)")
                     break
             else:
-                # 아직 태그 있음 → 타이머 리셋
-                clear_deadline = time.time() + clear_wait_sec
-                logger.debug("태그 아직 감지 중 — 대기 연장")
+                empty_count = 0
+                new_tags = set(remaining) - scanned_set
+                if new_tags:
+                    # WAITING_CLEAR 중 새로운 사람 태그 감지 → 별도 스캔 이벤트
+                    logger.info("WAITING_CLEAR 중 새 태그 감지: %s", list(new_tags))
+                    scanned_set.update(new_tags)
+                    _send_scan(client, list(new_tags))
 
 
 if __name__ == "__main__":
