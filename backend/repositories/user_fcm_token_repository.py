@@ -1,9 +1,28 @@
+"""
+FCM token data access layer
+
+Repository responsible for database operations on Firebase Cloud Messaging tokens.
+Manages FCM token registration, updates, and cleanup for push notification delivery.
+
+Data management:
+- FCM token registration and updates
+- Device-specific token management
+- Token validation and cleanup
+- Multi-device token support per user
+"""
+
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from backend.models.user_fcm_token import UserFcmToken
 
 
 class UserFcmTokenRepository:
+    """
+    FCM token data access layer
+
+    Handles database operations for Firebase Cloud Messaging tokens
+    used for push notification delivery to user devices.
+    """
     def __init__(self, db: Session):
         self.db = db
 

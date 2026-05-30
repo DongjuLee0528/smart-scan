@@ -1,7 +1,7 @@
 """
 Unit tests for remote_service.py
 
-PYTHONPATH 설정 예시:
+PYTHONPATH setting example:
     PYTHONPATH=lambdas/remote-alert pytest lambdas/remote-alert/tests/
 """
 import json
@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # ---------------------------------------------------------------------------
-# 헬퍼 — 공통 이벤트 빌더
+# Helper — Common event builder
 # ---------------------------------------------------------------------------
 
 def _make_event(method="POST", auth="Bearer valid-token", body: dict | None = None):
@@ -21,13 +21,12 @@ def _make_event(method="POST", auth="Bearer valid-token", body: dict | None = No
 
 
 def _mock_supabase(user_obj=True, member_data=None, insert_raises=False):
-    """
-    get_client() 가 반환하는 Supabase 클라이언트 mock 생성.
+    """Create a mocked Supabase client returned by get_client()
 
-    - user_obj=True  → auth.get_user() 성공 (user 속성 존재)
-    - user_obj=False → auth.get_user() 가 ValueError 발생
-    - member_data    → family_members 쿼리 결과 (None 이면 data=None)
-    - insert_raises  → notifications INSERT 에서 예외 발생
+    - user_obj=True  → auth.get_user() succeeds (user property exists)
+    - user_obj=False → auth.get_user() raises ValueError
+    - member_data    → family_members query result (data=None if None)
+    - insert_raises  → notifications INSERT raises exception
     """
     client = MagicMock()
 
@@ -39,7 +38,7 @@ def _mock_supabase(user_obj=True, member_data=None, insert_raises=False):
     else:
         client.auth.get_user.side_effect = ValueError("invalid token")
 
-    # --- family_members 체인: .table().select().eq().single().execute() ---
+    # --- family_members chain: .table().select().eq().single().execute() ---
     member_result = MagicMock()
     member_result.data = member_data
     (client.table.return_value
@@ -61,12 +60,12 @@ def _mock_supabase(user_obj=True, member_data=None, insert_raises=False):
 
 
 # ---------------------------------------------------------------------------
-# 테스트 클래스
+# Test class
 # ---------------------------------------------------------------------------
 
 class TestSendRemoteAlert(unittest.TestCase):
 
-    # 1. OPTIONS 프리플라이트 → 200
+    # 1. OPTIONS preflight → 200
     def test_options_returns_200(self):
         from services.remote_service import send_remote_alert
 
@@ -76,7 +75,7 @@ class TestSendRemoteAlert(unittest.TestCase):
         self.assertEqual(resp["statusCode"], 200)
         self.assertEqual(resp["body"], "")
 
-    # 2. Authorization 헤더 없음 → 401
+    # 2. No Authorization header → 401
     def test_no_auth_header_returns_401(self):
         from services.remote_service import send_remote_alert
 
@@ -87,7 +86,7 @@ class TestSendRemoteAlert(unittest.TestCase):
         body = json.loads(resp["body"])
         self.assertIn("error", body)
 
-    # 3. 토큰 검증 실패(get_user 예외) → 401
+    # 3. Token validation failure (get_user exception) → 401
     @patch("services.remote_service.get_client")
     def test_invalid_token_returns_401(self, mock_get_client):
         from services.remote_service import send_remote_alert
@@ -100,7 +99,7 @@ class TestSendRemoteAlert(unittest.TestCase):
         body = json.loads(resp["body"])
         self.assertIn("error", body)
 
-    # 4. member_id 누락 → 400
+    # 4. Missing member_id → 400
     @patch("services.remote_service.get_client")
     def test_missing_member_id_returns_400(self, mock_get_client):
         from services.remote_service import send_remote_alert
@@ -113,12 +112,12 @@ class TestSendRemoteAlert(unittest.TestCase):
         body = json.loads(resp["body"])
         self.assertIn("error", body)
 
-    # 5. DB에서 가족 구성원 없음 → 404
+    # 5. No family member found in DB → 404
     @patch("services.remote_service.get_client")
     def test_member_not_found_returns_404(self, mock_get_client):
         from services.remote_service import send_remote_alert
 
-        # member_data=None → result.data 가 None
+        # member_data=None → result.data is None
         mock_get_client.return_value = _mock_supabase(member_data=None)
         event = _make_event(body={"member_id": 99, "message": "hello"})
         resp = send_remote_alert(event)
@@ -127,16 +126,16 @@ class TestSendRemoteAlert(unittest.TestCase):
         body = json.loads(resp["body"])
         self.assertIn("error", body)
 
-    # 6. send_email 실패 → 500
+    # 6. send_email failure → 500
     @patch("services.remote_service.send_email", return_value=False)
     @patch("services.remote_service.get_client")
     def test_email_failure_returns_500(self, mock_get_client, mock_send_email):
         from services.remote_service import send_remote_alert
 
         mock_get_client.return_value = _mock_supabase(
-            member_data={"email": "test@example.com", "name": "홍길동"}
+            member_data={"email": "test@example.com", "name": "Hong Gildong"}
         )
-        event = _make_event(body={"member_id": 1, "message": "긴급 알림"})
+        event = _make_event(body={"member_id": 1, "message": "Emergency alert"})
         resp = send_remote_alert(event)
 
         self.assertEqual(resp["statusCode"], 500)
@@ -144,38 +143,38 @@ class TestSendRemoteAlert(unittest.TestCase):
         self.assertIn("error", body)
         mock_send_email.assert_called_once()
 
-    # 7. 정상 흐름 → 200, success: True
+    # 7. Normal flow → 200, success: True
     @patch("services.remote_service.send_email", return_value=True)
     @patch("services.remote_service.get_client")
     def test_success_returns_200(self, mock_get_client, mock_send_email):
         from services.remote_service import send_remote_alert
 
         mock_get_client.return_value = _mock_supabase(
-            member_data={"email": "member@example.com", "name": "김철수"}
+            member_data={"email": "member@example.com", "name": "Kim Cheolsu"}
         )
-        event = _make_event(body={"member_id": 1, "message": "안녕하세요"})
+        event = _make_event(body={"member_id": 1, "message": "Hello"})
         resp = send_remote_alert(event)
 
         self.assertEqual(resp["statusCode"], 200)
         body = json.loads(resp["body"])
         self.assertTrue(body.get("success"))
-        self.assertIn("김철수", body.get("message", ""))
+        self.assertIn("Kim Cheolsu", body.get("message", ""))
         mock_send_email.assert_called_once()
 
-    # 8. notifications INSERT 예외가 발생해도 최종 응답은 200
+    # 8. Final response is 200 even if notifications INSERT exception occurs
     @patch("services.remote_service.send_email", return_value=True)
     @patch("services.remote_service.get_client")
     def test_db_failure_doesnt_affect_success(self, mock_get_client, mock_send_email):
         from services.remote_service import send_remote_alert
 
         mock_get_client.return_value = _mock_supabase(
-            member_data={"email": "member@example.com", "name": "이영희"},
+            member_data={"email": "member@example.com", "name": "Lee Younghee"},
             insert_raises=True,
         )
-        event = _make_event(body={"member_id": 2, "message": "테스트 메시지"})
+        event = _make_event(body={"member_id": 2, "message": "Test message"})
         resp = send_remote_alert(event)
 
-        # INSERT 실패해도 이메일 발송 성공이면 200
+        # Even if INSERT fails, 200 if email send succeeds
         self.assertEqual(resp["statusCode"], 200)
         body = json.loads(resp["body"])
         self.assertTrue(body.get("success"))
