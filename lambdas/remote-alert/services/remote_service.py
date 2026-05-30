@@ -1,3 +1,18 @@
+"""
+Remote Alert Service for Remote Alert Lambda
+
+Handles remote alert requests from authenticated users to send alerts
+to family members via email notifications.
+
+Key Features:
+- JWT token-based authentication verification
+- Cross-origin resource sharing (CORS) support
+- Email alert delivery with HTML formatting
+- Notification record storage in database
+- Input validation and error handling
+- XSS protection through HTML escaping
+"""
+
 import json
 from html import escape
 from common.db import get_client
@@ -12,7 +27,28 @@ CORS_HEADERS = {
 
 
 def send_remote_alert(event) -> dict:
-    """Handler for parents to send remote alerts to family members"""
+    """Handle remote alert requests from authenticated users
+
+    Processes API Gateway requests to send alert messages to family members.
+    Validates JWT authentication, checks member existence, and sends email alerts.
+
+    Args:
+        event: API Gateway event containing:
+               - headers: Including Authorization bearer token
+               - body: JSON with member_id and message
+
+    Returns:
+        dict: HTTP response with status code, headers, and body
+
+    Flow:
+        1. Handle CORS preflight requests
+        2. Validate JWT authentication token
+        3. Parse and validate request body
+        4. Look up family member information
+        5. Send HTML email alert
+        6. Store notification record in database
+        7. Return success/error response
+    """
 
     # Handle OPTIONS preflight requests
     if event.get('httpMethod') == 'OPTIONS':
@@ -139,6 +175,19 @@ def send_remote_alert(event) -> dict:
 
 
 def _build_notification_payload(sender_user_id: int, recipient_member: dict, message: str) -> dict:
+    """Build notification payload for database storage
+
+    Creates a structured notification record for the notifications table.
+    Used to track remote alert notifications sent via email.
+
+    Args:
+        sender_user_id: ID of user sending the alert
+        recipient_member: Family member data including family_id and user_id
+        message: Alert message content
+
+    Returns:
+        dict: Notification payload ready for database insertion
+    """
     return {
         "family_id": int(recipient_member["family_id"]),
         "sender_user_id": sender_user_id,
