@@ -1,3 +1,16 @@
+"""
+Scan log data access layer
+
+Repository responsible for database operations on RFID scan event logs.
+Manages all scan events (FOUND/LOST status) and provides time-ordered scan history data.
+
+Data management:
+- Scan event recording with timestamps
+- Latest scan status lookup by item
+- Scan history retrieval and filtering
+- Status-based scan log analytics
+"""
+
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text
 from backend.models.scan_log import ScanLog
