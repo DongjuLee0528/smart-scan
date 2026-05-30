@@ -33,17 +33,42 @@ logger.setLevel(logging.INFO)
 lambda_client = boto3.client('lambda', region_name='ap-northeast-2')
 
 _last_notified: dict[int, float] = {}  # member_id → last notified timestamp
-_last_outbound_tags: dict[int, set] = {}  # device_id → 외출 시 스캔된 tag_uid 집합
-NOTIFY_COOLDOWN_SEC = 20  # 20 seconds per member (시연용)
+_last_outbound_tags: dict[int, set] = {}  # device_id → set of tag_uids scanned during outbound
+NOTIFY_COOLDOWN_SEC = 20  # 20 seconds per member (for demonstration purposes)
 
 
 def _is_return_home(device_id: int, scanned_tags: list) -> bool:
-    """이전 외출 기록과 현재 스캔 태그가 겹치면 귀가 판정"""
+    """Determine if this is a return home by checking overlap with previous outbound tags
+
+    If current scanned tags match any tags from previous outbound scan,
+    this indicates the person is returning home.
+
+    Args:
+        device_id: ID of the scanning device
+        scanned_tags: List of tag UIDs currently scanned
+
+    Returns:
+        bool: True if this appears to be a return home event
+    """
     last_tags = _last_outbound_tags.get(device_id, set())
     return bool(last_tags and set(scanned_tags) & last_tags)
 
 
 def process_scan(event):
+    """Process RFID scan data from API Gateway event
+
+    Main entry point for handling scan data received from Raspberry Pi RFID readers.
+    Validates input, determines direction (outbound vs return home), and triggers
+    appropriate processing flow.
+
+    Args:
+        event: API Gateway event containing scan data with:
+               - device_serial: Unique identifier of the scanning device
+               - tags: List of RFID tag UIDs that were scanned
+
+    Returns:
+        dict: HTTP response with statusCode, headers, and body
+    """
     try:
         raw_body = event.get('body', '{}')
         body = json.loads(raw_body) if isinstance(raw_body, str) else raw_body
@@ -79,7 +104,7 @@ def process_scan(event):
 
     device_id = device['id']
 
-    # ── 귀가 vs 외출 방향 판정 ──
+    # ── Direction detection: Return home vs Outbound ──
     if _is_return_home(device_id, scanned_tags):
         return _handle_return_home(device_id, scanned_tags)
     else:
@@ -87,7 +112,15 @@ def process_scan(event):
 
 
 def _handle_return_home(device_id: int, scanned_tags: list) -> dict:
-    """귀가 처리: RETURNED 로그 삽입 + 밖에 두고 온 물건 알림"""
+    """Handle return home event: Insert RETURNED logs + alert for items left outside
+
+    Args:
+        device_id: ID of the scanning device
+        scanned_tags: List of tag UIDs scanned on return
+
+    Returns:
+        dict: HTTP response with status and message
+    """
     outbound_tags = _last_outbound_tags.pop(device_id)
     left_outside_tags = outbound_tags - set(scanned_tags)
 
@@ -113,7 +146,7 @@ def _handle_return_home(device_id: int, scanned_tags: list) -> dict:
                     })
                 )
             except Exception as e:
-                logger.error("Outbound Lambda invocation failed (귀가) — device_id: %s, error: %s", device_id, str(e))
+                logger.error("Outbound Lambda invocation failed (return home) — device_id: %s, error: %s", device_id, str(e))
 
     return {
         "statusCode": 200,
@@ -122,7 +155,15 @@ def _handle_return_home(device_id: int, scanned_tags: list) -> dict:
 
 
 def _handle_outbound(device_id: int, scanned_tags: list) -> dict:
-    """외출 처리: 태그 기록 + FOUND 로그 삽입 + 미소지 알림"""
+    """Handle outbound event: Record tags + insert FOUND logs + alert for missing items
+
+    Args:
+        device_id: ID of the scanning device
+        scanned_tags: List of tag UIDs scanned on departure
+
+    Returns:
+        dict: HTTP response with status and message
+    """
     _last_outbound_tags[device_id] = set(scanned_tags)
 
     _insert_scan_logs(device_id, scanned_tags, status='FOUND')
@@ -174,7 +215,15 @@ def _handle_outbound(device_id: int, scanned_tags: list) -> dict:
 
 
 def _insert_scan_logs(device_id: int, scanned_tags: list, status: str = 'FOUND'):
-    """Record logs for each scanned tag (actual scan_logs schema: user_device_id, item_id, status)"""
+    """Record logs for each scanned tag
+
+    Inserts records into scan_logs table with schema: user_device_id, item_id, status
+
+    Args:
+        device_id: ID of the scanning device
+        scanned_tags: List of tag UIDs that were scanned
+        status: Scan status ('FOUND' for outbound, 'RETURNED' for inbound)
+    """
     if not scanned_tags:
         return
 
@@ -203,7 +252,14 @@ def _insert_scan_logs(device_id: int, scanned_tags: list, status: str = 'FOUND')
 
 
 def _group_left_items_by_member(items: list) -> list:
-    """밖에 두고 온 아이템을 멤버별로 그룹핑 (귀가 알림용)"""
+    """Group items left outside by member (for return home notifications)
+
+    Args:
+        items: List of item dictionaries with member information
+
+    Returns:
+        list: List of member dictionaries with their left items
+    """
     members = {}
     for item in items:
         mid = item.get('member_id')
@@ -221,7 +277,16 @@ def _group_left_items_by_member(items: list) -> list:
 
 
 def _group_by_member(missing_items: list) -> list:
-    """Group missing items by member"""
+    """Group missing items by member
+
+    Organizes missing items data by member for notification purposes.
+
+    Args:
+        missing_items: List of missing item dictionaries
+
+    Returns:
+        list: List of member dictionaries with their missing items
+    """
     members = {}
     for item in missing_items:
         mid = item['member_id']
