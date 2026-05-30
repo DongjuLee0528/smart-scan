@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Signup Screen component for new user registration.
+ * Provides comprehensive registration form with validation for name, email,
+ * password, phone number, and age. Includes terms agreement and secure
+ * password requirements with user-friendly error handling.
+ */
+
 import React, { useState, useCallback } from 'react';
 import {
   View,
