@@ -1,3 +1,16 @@
+"""
+User data access layer
+
+Repository responsible for database operations on user accounts in Smart Scan system.
+Handles user registration, authentication, profile management, and user-related queries.
+
+Data management:
+- User account CRUD operations
+- Authentication credential management
+- Profile information and settings
+- User lookup by various identifiers (ID, email, Kakao user ID)
+"""
+
 from sqlalchemy.orm import Session
 from backend.models.user import User
 from typing import Optional

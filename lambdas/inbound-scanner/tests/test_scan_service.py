@@ -224,7 +224,6 @@ def test_cooldown_expires_member_notified_again(mock_device, mock_logs, mock_rpc
     assert mock_lambda.invoke.call_count == 2
 
 
-
 # ── 귀가 시나리오 테스트 ─────────────────────────────────────────────────────
 
 LEFT_ITEM = {"item_name": "차키", "tag_uid": "TAG_KEY", "member_id": 1, "member_name": "홍길동", "member_email": "a@test.com"}

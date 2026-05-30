@@ -14,7 +14,7 @@ from unittest.mock import patch, MagicMock
 
 def _make_member(
     member_id=1,
-    member_name="홍길동",
+    member_name="John Doe",
     member_email="hong@example.com",
     missing_items=None,
 ):
@@ -31,7 +31,7 @@ def _make_member(
 # ---------------------------------------------------------------------------
 
 def test_empty_members_returns_skip():
-    """missing_by_member가 빈 리스트이면 skip 상태를 반환해야 한다."""
+    """Should return skip status when missing_by_member is an empty list."""
     from services.notify_service import send_missing_alert
 
     result = send_missing_alert({"missing_by_member": []})
@@ -46,7 +46,7 @@ def test_empty_members_returns_skip():
 @patch("services.notify_service.get_client")
 @patch("services.notify_service.send_email")
 def test_no_email_skipped(mock_send_email, mock_get_client):
-    """member_email이 없으면 해당 멤버를 skipped 처리해야 한다."""
+    """Should skip the member when member_email is missing."""
     from services.notify_service import send_missing_alert
 
     member = _make_member(member_email=None)
@@ -64,7 +64,7 @@ def test_no_email_skipped(mock_send_email, mock_get_client):
 @patch("services.notify_service.get_client")
 @patch("services.notify_service.send_email")
 def test_no_items_skipped(mock_send_email, mock_get_client):
-    """missing_items가 빈 리스트이면 해당 멤버를 skipped 처리해야 한다."""
+    """Should skip the member when missing_items is an empty list."""
     from services.notify_service import send_missing_alert
 
     member = _make_member(missing_items=[])
@@ -82,7 +82,7 @@ def test_no_items_skipped(mock_send_email, mock_get_client):
 @patch("services.notify_service.get_client")
 @patch("services.notify_service.send_email", return_value=True)
 def test_email_sent_success(mock_send_email, mock_get_client):
-    """send_email이 True를 반환하면 status가 'sent'여야 한다."""
+    """Should have status 'sent' when send_email returns True."""
     from services.notify_service import send_missing_alert
 
     mock_supabase = MagicMock()
@@ -104,7 +104,7 @@ def test_email_sent_success(mock_send_email, mock_get_client):
 @patch("services.notify_service.get_client")
 @patch("services.notify_service.send_email", return_value=False)
 def test_email_failed(mock_send_email, mock_get_client):
-    """send_email이 False를 반환하면 status가 'email_failed'여야 한다."""
+    """Should have status 'email_failed' when send_email returns False."""
     from services.notify_service import send_missing_alert
 
     mock_supabase = MagicMock()
@@ -125,7 +125,7 @@ def test_email_failed(mock_send_email, mock_get_client):
 @patch("services.notify_service.get_client")
 @patch("services.notify_service.send_email", return_value=True)
 def test_db_failure_doesnt_affect_result(mock_send_email, mock_get_client):
-    """DB insert에서 예외가 발생해도 결과는 'sent'여야 한다."""
+    """Should still have result 'sent' even when DB insert throws an exception."""
     from services.notify_service import send_missing_alert
 
     mock_supabase = MagicMock()
@@ -148,7 +148,7 @@ def test_db_failure_doesnt_affect_result(mock_send_email, mock_get_client):
 @patch("services.notify_service.get_client")
 @patch("services.notify_service.send_email", return_value=True)
 def test_xss_escape(mock_send_email, mock_get_client):
-    """member_name에 <script> 태그가 포함되면 HTML escape 처리되어야 한다."""
+    """Should apply HTML escaping when member_name contains <script> tags."""
     from services.notify_service import send_missing_alert
 
     mock_supabase = MagicMock()
@@ -157,7 +157,7 @@ def test_xss_escape(mock_send_email, mock_get_client):
     member = _make_member(member_name="<script>alert('xss')</script>")
     send_missing_alert({"missing_by_member": [member]})
 
-    # send_email에 전달된 html 본문 검사
+    # Check the HTML body passed to send_email
     call_args = mock_send_email.call_args
     html_body = call_args[0][2]  # positional: (recipients, subject, html)
 
@@ -172,13 +172,13 @@ def test_xss_escape(mock_send_email, mock_get_client):
 @patch("services.notify_service.get_client")
 @patch("services.notify_service.send_email")
 def test_multiple_members(mock_send_email, mock_get_client):
-    """2명 처리 시 send_email 결과에 따라 sent_count가 정확히 계산되어야 한다."""
+    """Should correctly calculate sent_count based on send_email results when processing 2 members."""
     from services.notify_service import send_missing_alert
 
     mock_supabase = MagicMock()
     mock_get_client.return_value = mock_supabase
 
-    # 첫 번째 멤버: 이메일 성공, 두 번째 멤버: 이메일 실패
+    # First member: email success, second member: email failure
     mock_send_email.side_effect = [True, False]
 
     members = [
