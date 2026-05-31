@@ -41,6 +41,7 @@ jobs:
           aws s3 sync frontend/ s3://${{ env.S3_BUCKET }} \
             --delete \
             --exclude "*.html" \
+            --exclude "ppt/*" \
             --cache-control "max-age=86400"
 
       - name: Invalidate CloudFront cache
