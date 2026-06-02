@@ -125,6 +125,10 @@ class FI805FReader:
                 if epc:
                     tags.add(epc)
 
+            # 태그 감지 즉시 반환 — 3초 윈도우를 다 채우지 않고 빠르게 이벤트 처리
+            if tags:
+                return list(tags)
+
         return list(tags)
 
     def close(self):
