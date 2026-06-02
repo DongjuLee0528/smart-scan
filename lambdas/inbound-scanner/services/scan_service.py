@@ -112,21 +112,8 @@ def process_scan(event):
 
 
 def _handle_return_home(device_id: int, scanned_tags: list) -> dict:
-<<<<<<< HEAD
-    """Handle return home event: Insert RETURNED logs + alert for items left outside
-
-    Args:
-        device_id: ID of the scanning device
-        scanned_tags: List of tag UIDs scanned on return
-
-    Returns:
-        dict: HTTP response with status and message
-    """
-    outbound_tags = _last_outbound_tags.pop(device_id)
-=======
     """귀가 처리: RETURNED 로그 삽입 + 밖에 두고 온 물건 알림"""
     outbound_tags = _last_outbound_tags.get(device_id, set())
->>>>>>> main
     left_outside_tags = outbound_tags - set(scanned_tags)
     # 아직 밖에 있는 태그만 유지, 없으면 제거
     if left_outside_tags:
@@ -165,22 +152,9 @@ def _handle_return_home(device_id: int, scanned_tags: list) -> dict:
 
 
 def _handle_outbound(device_id: int, scanned_tags: list) -> dict:
-<<<<<<< HEAD
-    """Handle outbound event: Record tags + insert FOUND logs + alert for missing items
-
-    Args:
-        device_id: ID of the scanning device
-        scanned_tags: List of tag UIDs scanned on departure
-
-    Returns:
-        dict: HTTP response with status and message
-    """
-    _last_outbound_tags[device_id] = set(scanned_tags)
-=======
     """외출 처리: 태그 기록 + FOUND 로그 삽입 + 미소지 알림"""
     # 누적 저장: 별도 이벤트로 나간 태그도 모두 추적
     _last_outbound_tags[device_id] = _last_outbound_tags.get(device_id, set()) | set(scanned_tags)
->>>>>>> main
 
     _insert_scan_logs(device_id, scanned_tags, status='FOUND')
 

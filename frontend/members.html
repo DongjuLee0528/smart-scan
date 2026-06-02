@@ -157,6 +157,7 @@
     }
 
     async function loadInvitations() {
+      const fmt = smartscanLayout.formatDateTime;
       const tbody = document.getElementById('invitations-tbody');
       try {
         const res = await smartscanApi.listInvitations();
