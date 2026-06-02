@@ -65,18 +65,18 @@ def send_return_home_alert(event) -> dict:
         )
         html = f"""
         <div style="font-family:'Apple SD Gothic Neo',sans-serif;max-width:480px;margin:auto;padding:24px">
-          <h2 style="color:#034EA2;margin-bottom:8px">&#x1F3E0; SmartScan Hub Alert</h2>
+          <h2 style="color:#034EA2;margin-bottom:8px">&#x1F3E0; SmartScan Hub</h2>
           <p style="font-size:16px;margin-bottom:20px">
-            <strong>{safe_name}</strong>, welcome home!<br>You left some items outside.
+            <strong>{safe_name}</strong>님, 귀가하셨네요!<br>밖에 두고 오신 물건이 있어요.
           </p>
           <ul style="background:#fff3cd;padding:16px 24px;border-radius:8px;list-style:none">
             {items_html}
           </ul>
-          <p style="color:#718096;font-size:12px;margin-top:20px">This email was automatically sent by SmartScan Hub.</p>
+          <p style="color:#718096;font-size:12px;margin-top:20px">SmartScan Hub에서 자동으로 발송된 메일입니다.</p>
         </div>
         """
 
-        subject = f"[SmartScan Hub] {safe_name}, you left some items outside!"
+        subject = f"[SmartScan Hub] {safe_name}님, 밖에 두고 오신 물건이 있어요!"
         ok = send_email([member_email], subject, html)
         status = "sent" if ok else "email_failed"
         print(f"[RETURN_HOME_ALERT][{status}] {member_name} ({member_email}) → left outside: {left_items}")
@@ -130,29 +130,29 @@ def send_missing_alert(event) -> dict:
         # ── Generate email HTML (XSS prevention: HTML escape applied) ──
         safe_name = escape(str(member_name))
         items_html = ''.join(
-            [f'<li style="margin:8px 0;font-size:15px"><strong>{escape(str(item))}</strong> Did you forget to bring this?</li>' for item in missing_items]
+            [f'<li style="margin:8px 0;font-size:15px"><strong>{escape(str(item))}</strong> 깜빡하시지 않으셨나요?</li>' for item in missing_items]
         )
         html = f"""
         <div style="font-family:'Apple SD Gothic Neo',sans-serif;max-width:480px;margin:auto;padding:24px">
-          <h2 style="color:#034EA2;margin-bottom:8px">&#x1F514; SmartScan Hub Alert</h2>
-          <p style="font-size:16px;margin-bottom:20px"><strong>{safe_name}</strong>, did you forget to bring the following items when heading out?</p>
+          <h2 style="color:#034EA2;margin-bottom:8px">&#x1F514; SmartScan Hub</h2>
+          <p style="font-size:16px;margin-bottom:20px"><strong>{safe_name}</strong>님, 외출하실 때 혹시 아래 물건을 깜빡하시지 않으셨나요?</p>
           <ul style="background:#f0f6ff;padding:16px 24px;border-radius:8px;list-style:none">
             {items_html}
           </ul>
-          <p style="color:#718096;font-size:12px;margin-top:20px">This email was automatically sent by SmartScan Hub.</p>
+          <p style="color:#718096;font-size:12px;margin-top:20px">SmartScan Hub에서 자동으로 발송된 메일입니다.</p>
         </div>
         """
 
         # ── Email delivery ──
-        subject = f"[SmartScan Hub] {safe_name}, you forgot some items!"
+        subject = f"[SmartScan Hub] {safe_name}님, 깜빡하신 물건이 있어요!"
         ok = send_email([member_email], subject, html)
 
         status = "sent" if ok else "email_failed"
         print(f"[{status}] {member_name} ({member_email}) → {missing_items}")
 
         # ── Record in notifications table (isolated from email delivery result) ──
-        title = "You forgot some items!"
-        message = f"Please check the following items: {', '.join(missing_items)}"
+        title = f"{safe_name}님, 깜빡하신 물건이 있어요!"
+        message = f"확인이 필요한 물건: {', '.join(missing_items)}"
         notification_payload = _build_notification_payload(member, title, message)
 
         try:
