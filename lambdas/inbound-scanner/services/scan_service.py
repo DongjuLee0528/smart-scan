@@ -262,7 +262,9 @@ def _group_left_items_by_member(items: list) -> list:
                 'member_email': item.get('member_email', ''),
                 'left_items': []
             }
-        members[mid]['left_items'].append(item['item_name'])
+        name = item['item_name']
+        if name not in members[mid]['left_items']:
+            members[mid]['left_items'].append(name)
     return [m for m in members.values() if m.get('member_email') and m['left_items']]
 
 
@@ -295,5 +297,7 @@ def _group_by_member(missing_items: list) -> list:
                 members[mid]['recipient_user_id'] = item['recipient_user_id']
             if item.get('channel') is not None:
                 members[mid]['channel'] = item['channel']
-        members[mid]['missing_items'].append(item['missing_item'])
+        name = item['missing_item']
+        if name not in members[mid]['missing_items']:
+            members[mid]['missing_items'].append(name)
     return list(members.values())

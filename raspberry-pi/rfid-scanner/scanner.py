@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 CONFIG_PATH       = "/etc/smartscan/config.env"
 CONFIG_RETRY_SEC  = 30
 SCAN_INTERVAL_SEC = 2   # IDLE 상태 폴링 간격
-CLEAR_POLL_SEC    = 2   # WAITING_CLEAR 상태 폴링 간격
+CLEAR_POLL_SEC    = 0.5 # WAITING_CLEAR 상태 폴링 간격
 
 
 def load_config() -> dict:
@@ -100,6 +100,10 @@ def main():
     signal.signal(signal.SIGTERM, _shutdown)
     signal.signal(signal.SIGINT, _shutdown)
 
+    ignore_tags = set(t.strip() for t in cfg.get("IGNORE_TAGS", "").split(",") if t.strip())
+    if ignore_tags:
+        logger.info("무시 태그 %d개 설정: %s", len(ignore_tags), ignore_tags)
+
     logger.info(
         "이벤트 기반 스캔 시작 (window=%.1fs, clear_wait=%ds)",
         scan_window, clear_wait_sec,
@@ -115,7 +119,12 @@ def main():
             continue
 
         if not tags:
-            continue  # sleep 없이 즉시 재시도 (collect_tags가 window_sec 동안 충분히 대기)
+            continue
+
+        # IGNORE_TAGS 필터
+        tags = [t for t in tags if t not in ignore_tags]
+        if not tags:
+            continue
 
         # ── SCANNING: 태그 감지 → 1회 전송 ──────────────────────────
         logger.info("스캔 이벤트 시작: %s", tags)
@@ -126,8 +135,9 @@ def main():
         CLEAR_CONFIRM_COUNT = 3
         scanned_set = set(tags)
         empty_count = 0
-        logger.info("WAITING_CLEAR — 태그 소멸 대기 중 (연속 %d회 비면 IDLE 복귀)", CLEAR_CONFIRM_COUNT)
-        while True:
+        deadline = time.time() + clear_wait_sec
+        logger.info("WAITING_CLEAR — 태그 소멸 대기 중 (연속 %d회 비면 IDLE 복귀, 최대 %ds)", CLEAR_CONFIRM_COUNT, clear_wait_sec)
+        while time.time() < deadline:
             time.sleep(CLEAR_POLL_SEC)
             try:
                 remaining = reader.collect_tags(window_sec=1.0)
@@ -141,12 +151,14 @@ def main():
                     break
             else:
                 empty_count = 0
-                new_tags = set(remaining) - scanned_set
+                new_tags = set(remaining) - scanned_set - ignore_tags
                 if new_tags:
                     # WAITING_CLEAR 중 새로운 사람 태그 감지 → 별도 스캔 이벤트
                     logger.info("WAITING_CLEAR 중 새 태그 감지: %s", list(new_tags))
                     scanned_set.update(new_tags)
                     _send_scan(client, list(new_tags))
+        else:
+            logger.info("WAITING_CLEAR 타임아웃 (%ds) — IDLE 복귀", clear_wait_sec)
 
 
 if __name__ == "__main__":
