@@ -107,10 +107,11 @@ class FI805FReader:
             self._ser.reset_input_buffer()
             self._ser.write(CMD_MULTI)
 
-            # 응답 버퍼 수집 (종료 마커 또는 0.5초 타임아웃)
+            # 응답 버퍼 수집 (종료 마커 또는 0.3초 타임아웃)
             # FI-805F 응답 속도: 태그 있을 때 ~100-200ms, 없을 때 즉시 종료 마커
+            # 0.5 → 0.3초: 1.5s 윈도우 기준 사이클 3회 → 5회, 빠른 통과 감지 개선
             buf = b""
-            scan_dl = time.time() + 0.5
+            scan_dl = time.time() + 0.3
             while time.time() < scan_dl:
                 chunk = self._ser.read(256)
                 if chunk:
