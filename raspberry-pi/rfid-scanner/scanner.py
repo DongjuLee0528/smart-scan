@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 CONFIG_PATH       = "/etc/smartscan/config.env"
 CONFIG_RETRY_SEC  = 30
 SCAN_INTERVAL_SEC = 2   # IDLE 상태 폴링 간격
-CLEAR_POLL_SEC    = 0.5 # WAITING_CLEAR 상태 폴링 간격
+CLEAR_POLL_SEC    = 0.05 # WAITING_CLEAR 상태 폴링 간격 (슬립 최소화)
 
 
 def load_config() -> dict:
