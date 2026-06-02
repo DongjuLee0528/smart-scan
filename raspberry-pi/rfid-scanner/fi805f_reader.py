@@ -94,8 +94,8 @@ class FI805FReader:
     def collect_tags(self, window_sec: float = 3.0) -> list[str]:
         """
         window_sec 동안 멀티태그 인벤토리 반복 수행.
-        각 U 커맨드 이후 응답 종료 마커 또는 0.5초 타임아웃까지 수집.
-        sleep 없이 연속 전송하여 빠르게 지나가는 태그도 감지.
+        end marker 수신 즉시 다음 U 커맨드 전송 → RF 활성 듀티사이클 ~95%.
+        태그 없을 때 응답: ~5ms / 태그 있을 때: ~20-100ms.
         """
         tags: set[str] = set()
         deadline = time.time() + window_sec
@@ -104,28 +104,23 @@ class FI805FReader:
             if not self._ser or not self._ser.is_open:
                 break
 
-            self._ser.reset_input_buffer()
             self._ser.write(CMD_MULTI)
 
-            # 응답 버퍼 수집 (종료 마커 또는 0.3초 타임아웃)
-            # FI-805F 응답 속도: 태그 있을 때 ~100-200ms, 없을 때 즉시 종료 마커
-            # 0.5 → 0.3초: 1.5s 윈도우 기준 사이클 3회 → 5회, 빠른 통과 감지 개선
+            # end marker(\nU\r\n) 올 때까지 읽기 — 0.3초 타임아웃은 응답 없을 때만 걸림
             buf = b""
             scan_dl = time.time() + 0.3
             while time.time() < scan_dl:
                 chunk = self._ser.read(256)
                 if chunk:
                     buf += chunk
-                    if b"\nU\r\n" in buf:   # 종료 마커 확인
-                        break
+                    if b"\nU\r\n" in buf:
+                        break   # end marker 확인 → 즉시 다음 사이클
 
-            # 줄 단위 파싱
             for segment in buf.split(b"\n"):
                 epc = self._parse_epc_line(segment)
                 if epc:
                     tags.add(epc)
 
-            # 태그 감지 즉시 반환 — 3초 윈도우를 다 채우지 않고 빠르게 이벤트 처리
             if tags:
                 return list(tags)
 
