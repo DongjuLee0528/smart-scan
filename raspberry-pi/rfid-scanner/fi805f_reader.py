@@ -47,7 +47,8 @@ class FI805FReader:
                 bytesize=serial.EIGHTBITS,
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
-                timeout=self.timeout
+                timeout=self.timeout,
+                inter_byte_timeout=0.02   # 마지막 바이트 후 20ms 이내 추가 바이트 없으면 즉시 반환
             )
             logger.info("FI-805F 연결 완료: %s @ %d baud", self.port, self.baud)
             if self.power is not None:
